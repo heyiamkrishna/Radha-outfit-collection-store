@@ -20,6 +20,9 @@ An editorial luxury apparel e-commerce platform engineered with Next.js 15 App R
 
 ---
 
+
+
+
 ```markdown
 ## 🏛️ System Architecture
 
