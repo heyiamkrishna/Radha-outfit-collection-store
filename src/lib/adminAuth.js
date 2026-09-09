@@ -1,33 +1,81 @@
-import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import { cookies } from "next/headers";
 
 /**
- * Validates the administrative JWT session cookie (`roc_token`).
- * Throws explicit errors if JWT_SECRET is missing or the token is invalid/unauthorized.
+ * Encodes JWT secret into a Uint8Array for jose verification.
  */
-export async function verifyAdminSession() {
-  const secretKey = process.env.JWT_SECRET;
-  if (!secretKey) {
-    throw new Error("CRITICAL CONFIGURATION ERROR: JWT_SECRET is not defined in environment variables.");
+function getJwtSecretKey() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET environment variable is missing or shorter than 32 characters.");
   }
+  return new TextEncoder().encode(secret);
+}
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get("roc_token")?.value;
-
-  if (!token) {
-    return { authorized: false, error: "Authentication token missing.", status: 401 };
-  }
-
+/**
+ * Centralized admin authentication verifier.
+ * Checks request authorization headers and HTTP-only session cookies.
+ *
+ * @param {Request} [req] - Optional incoming NextRequest or Request object
+ * @returns {Promise<{ authorized: boolean, user?: object, error?: string }>}
+ */
+export async function verifyAdmin(req) {
   try {
-    const encodedSecret = new TextEncoder().encode(secretKey);
-    const { payload } = await jwtVerify(token, encodedSecret);
+    let token = null;
 
-    if (payload.role !== "admin") {
-      return { authorized: false, error: "Forbidden: Admin privileges required.", status: 403 };
+    // 1. Check Authorization Bearer header
+    if (req && req.headers) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+      }
     }
 
-    return { authorized: true, user: payload };
-  } catch (err) {
-    return { authorized: false, error: "Session expired or invalid token.", status: 401 };
+    // 2. Check Next.js server cookie store
+    if (!token) {
+      const cookieStore = await cookies();
+      const sessionCookie =
+        cookieStore.get("token") ||
+        cookieStore.get("admin_token") ||
+        cookieStore.get("auth_token");
+
+      if (sessionCookie) {
+        token = sessionCookie.value;
+      }
+    }
+
+    if (!token) {
+      return { authorized: false, error: "Missing authentication token" };
+    }
+
+    // 3. Cryptographically verify signature
+    const secretKey = getJwtSecretKey();
+    const { payload } = await jwtVerify(token, secretKey);
+
+    // 4. Validate administrative role
+    const role = (payload.role || "").toLowerCase();
+    if (role !== "admin" && role !== "superadmin") {
+      return { authorized: false, error: "Forbidden: Admin privileges required" };
+    }
+
+    return {
+      authorized: true,
+      user: {
+        id: payload.id || payload.sub || payload.userId,
+        email: payload.email,
+        role: payload.role,
+      },
+    };
+  } catch (error) {
+    return {
+      authorized: false,
+      error: error.message || "Invalid or expired token",
+    };
   }
 }
+
+// Named alias matching api/admin/products, api/inventory, and api/qr/generate imports
+export const verifyAdminSession = verifyAdmin;
+
+// Default export fallback
+export default verifyAdmin;

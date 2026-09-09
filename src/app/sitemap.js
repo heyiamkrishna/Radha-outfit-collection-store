@@ -2,7 +2,7 @@ import connectToDatabase from "@/lib/mongodb";
 import Product from "@/models/Product";
 
 export default async function sitemap() {
- const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://radha-outfit-collection.vercel.app";";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://radha-outfit-collection.vercel.app";
 
   let productEntries = [];
 
