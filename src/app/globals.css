@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@layer base {
+  :root {
+    --bg-primary: #F4F5F9;
+    --bg-surface: #FFFFFF;
+    --bg-dark: #0C0D11;
+
+    --accent-chip: #EBF1FD;
+    --accent-text: #3B7BF6;
+
+    --text-heading: #0C0D11;
+    --text-body: #4A4D59;
+    --text-muted: #8E92A2;
+
+    --border-subtle: #E8EBF2;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-heading);
+    font-family: var(--font-sans);
+    letter-spacing: -0.015em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+
+/* Swiper Custom Capsule Pagination Dots */
+.hero-swiper .swiper-pagination {
+  bottom: 0px !important;
+}
+
+.hero-swiper .swiper-pagination-bullet {
+  background: #A0A4B4 !important;
+  opacity: 0.5;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.hero-swiper .swiper-pagination-bullet-active {
+  width: 24px !important;
+  border-radius: 9999px !important;
+  background: #0C0D11 !important;
+  opacity: 1 !important;
+}
