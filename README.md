@@ -20,35 +20,42 @@ An editorial luxury apparel e-commerce platform engineered with Next.js 15 App R
 
 ---
 
+```markdown
 ## 🏛️ System Architecture
 
-```mermaid
-flowchart TD
-    subgraph Storefront [Customer Storefront]
-        A[Dynamic PDP<br>/product/:slug]
-        B[Luxury Cart<br>Zustand Drawer]
-        C[Order Tracker<br>/account/orders]
-    end
-
-    A --> Checkout[Server-Authoritative Checkout<br>/api/checkout & /calculate]
-    B --> Checkout
-    C --> Checkout
-
-    subgraph Pipeline [Checkout Validation Pipeline]
-        Checkout --> DBV[Database Verification<br>Subtotal, GST, Delivery]
-        Checkout --> TXL[Transactional Ledger<br>Atomic Stock Deduct]
-    end
-
-    DBV --> Mongo[(MongoDB Cluster<br>Products, Variants, Orders, Inventory Logs)]
-    TXL --> Mongo
-
-    subgraph PhysicalDigital [Physical-to-Digital Operations]
-        Tag[Physical Clothing Tag<br>Customer Camera Scan] --> QRRes[QR Tag Resolution<br>/p/q/:token]
-        QRRes --> A
-        QRRes <--> Mongo
-        Admin[Admin Master Desk<br>/admin & /products] <--> Mongo
-        Admin --> ScanPrint[Camera Scanner & Label Print<br>Stock In/Out Actions]
-    end
+<pre>
+                        CUSTOMER STOREFRONT
+                                 │
+           ┌─────────────────────┼─────────────────────┐
+           ▼                     ▼                     ▼
+      DYNAMIC PDP           LUXURY CART         ORDER TRACKER
+   (/product/[slug])      (Zustand Drawer)    (/account/orders)
+           │                     │                     │
+           └─────────────────────┼─────────────────────┘
+                                 ▼
+                   SERVER-AUTHORITATIVE CHECKOUT
+                    (/api/checkout & /calculate)
+                                 │
+                ┌────────────────┴────────────────┐
+                ▼                                 ▼
+      DATABASE VERIFICATION             TRANSACTIONAL LEDGER
+    (Subtotal, GST, Delivery)           (Atomic Stock Deduct)
+                │                                 │
+                └────────────────┬────────────────┘
+                                 ▼
+                         MONGODB CLUSTER
+            (Products, Variants, Orders, Inventory Logs)
+                                 ▲
+                                 │
+                ┌────────────────┴────────────────┐
+                ▼                                 ▼
+        QR TAG RESOLUTION                 ADMIN MASTER DESK
+         (/p/q/[token])                   (/admin & /products)
+                ▲                                 ▲
+                │                                 │
+      PHYSICAL CLOTHING TAG              CAMERA SCANNER & PRINT
+        (Scan with Phone)                 (Stock In/Out Actions)
+</pre>
 
 
     ---
