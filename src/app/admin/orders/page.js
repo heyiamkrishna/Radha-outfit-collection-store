@@ -1,268 +1,419 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
-  ArrowLeft,
+  ShoppingBag,
   Search,
   RefreshCw,
+  Loader2,
+  ExternalLink,
+  ArrowUpRight,
+  Eye,
+  CheckCircle2,
+  Clock,
+  Truck,
+  Package,
+  Receipt,
+  Store,
   User,
-  Mail,
   Phone,
   MapPin,
-  Calendar,
-  CreditCard,
-  Package,
+  FileText,
   X,
-  MessageCircle,
-  ExternalLink,
-  ShieldCheck,
+  Printer,
   ChevronRight,
   Sparkles,
-  Truck,
+  ShieldCheck,
+  TrendingUp,
+  ArrowRight,
+  IndianRupee,
+  BadgePercent,
+  Check,
+  Filter,
 } from "lucide-react";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
-  const fetchOrders = useCallback(async (isSilent = false) => {
+  const fetchOrders = useCallback(async (isManual = false) => {
     try {
-      if (isSilent) setRefreshing(true);
+      if (isManual) setRefreshing(true);
       else setLoading(true);
 
-      const url = new URL("/api/admin/orders", window.location.origin);
-      if (statusFilter !== "all") url.searchParams.set("status", statusFilter);
-      if (search.trim()) url.searchParams.set("q", search.trim());
-
-      const res = await fetch(url.toString());
+      const res = await fetch("/api/admin/orders?limit=150", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load transactions.");
       const data = await res.json();
-      if (res.ok) setOrders(data.orders || []);
+      setOrders(data.orders || []);
     } catch (err) {
-      console.error("Order fetch error:", err);
+      console.error("Order fetch failure:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [statusFilter, search]);
+  }, []);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
 
-  const updateOrderStatus = async (orderId, newStatus) => {
+  useEffect(() => {
+    if (selectedOrder) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedOrder]);
+
+  const advanceStatus = async (orderId, currentStatus) => {
+    const statusSequence = {
+      received: "processing",
+      processing: "shipped",
+      shipped: "delivered",
+      delivered: "delivered",
+    };
+    const nextStatus = statusSequence[currentStatus] || "processing";
+
     try {
+      setUpdatingId(orderId);
       const res = await fetch("/api/admin/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, orderStatus: newStatus }),
+        body: JSON.stringify({ orderId, orderStatus: nextStatus }),
       });
       if (res.ok) {
-        fetchOrders(true);
+        setOrders((prev) =>
+          prev.map((o) => (o._id === orderId ? { ...o, orderStatus: nextStatus } : o))
+        );
         if (selectedOrder?._id === orderId) {
-          setSelectedOrder((prev) => ({ ...prev, orderStatus: newStatus }));
+          setSelectedOrder((prev) => ({ ...prev, orderStatus: nextStatus }));
         }
       }
     } catch (err) {
-      console.error(err);
+      alert("Status update failed: " + err.message);
+    } finally {
+      setUpdatingId(null);
     }
   };
 
-  const statuses = [
-    { id: "all", label: "All Dispatches" },
-    { id: "received", label: "Received" },
-    { id: "confirmed", label: "Confirmed" },
-    { id: "in_production", label: "Tailoring" },
-    { id: "dispatched", label: "Dispatched" },
-    { id: "delivered", label: "Delivered" },
-  ];
+  const manualCount = useMemo(() => {
+    return orders.filter(
+      (o) =>
+        o.isManualEntry ||
+        o.orderNumber?.startsWith("ROC-POS") ||
+        o.orderNumber?.startsWith("ROC-MAN")
+    ).length;
+  }, [orders]);
+
+  const grossRevenue = useMemo(() => {
+    return orders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  }, [orders]);
+
+  const pendingDispatches = useMemo(() => {
+    return orders.filter((o) => o.orderStatus !== "delivered").length;
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        o.orderNumber?.toLowerCase().includes(q) ||
+        o.shippingAddress?.fullName?.toLowerCase().includes(q) ||
+        o.shippingAddress?.phone?.toLowerCase().includes(q) ||
+        o.items?.some((i) => i.name?.toLowerCase().includes(q));
+
+      const isManual =
+        o.isManualEntry === true ||
+        o.orderNumber?.startsWith("ROC-POS") ||
+        o.orderNumber?.startsWith("ROC-MAN");
+
+      if (statusFilter === "manual-pos") return matchesSearch && isManual;
+      if (statusFilter === "online") return matchesSearch && !isManual;
+      if (statusFilter !== "all") {
+        return matchesSearch && o.orderStatus?.toLowerCase() === statusFilter.toLowerCase();
+      }
+      return matchesSearch;
+    });
+  }, [orders, searchQuery, statusFilter]);
 
   return (
-    <div className="relative min-h-screen bg-[#F8F9FC] text-[#0C0D11] pt-6 sm:pt-10 pb-24 px-3.5 sm:px-6 md:px-12 max-w-7xl mx-auto space-y-6 sm:space-y-8 selection:bg-[#0C0D11] selection:text-white animate-luxury-fade overflow-x-hidden">
-      {/* Ambient Lighting Orbs */}
-      <div className="pointer-events-none absolute top-4 left-1/3 w-[450px] h-[450px] bg-gradient-to-br from-blue-100/35 via-indigo-50/20 to-transparent rounded-full blur-3xl -z-10" />
-      <div className="pointer-events-none absolute bottom-1/4 right-8 w-[420px] h-[420px] bg-gradient-to-tl from-rose-100/25 via-amber-50/20 to-transparent rounded-full blur-3xl -z-10" />
+    <div className="relative min-h-screen bg-[#FBFBFC] text-[#0C0D11] pt-4 sm:pt-8 pb-32 px-3.5 sm:px-6 md:px-12 max-w-7xl mx-auto space-y-7 sm:space-y-10 selection:bg-[#0C0D11] selection:text-white">
+      {/* ── Atmospheric Ambient Radiance ── */}
+      <div className="pointer-events-none fixed top-[-5%] left-1/4 w-[650px] h-[650px] bg-gradient-to-br from-indigo-100/25 via-blue-50/15 to-transparent rounded-full blur-3xl -z-10" />
+      <div className="pointer-events-none fixed bottom-10 right-[-5%] w-[600px] h-[600px] bg-gradient-to-tl from-emerald-100/20 via-amber-50/15 to-transparent rounded-full blur-3xl -z-10" />
 
-      {/* Top Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/[0.05] pb-5 sm:pb-6">
-        <div className="space-y-1">
-          <Link
-            href="/admin/dashboard"
-            className="group inline-flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-[#8E92A2] hover:text-[#0C0D11] transition-colors active:scale-95"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-            <span>Back to Dashboard</span>
-          </Link>
-          <div className="flex items-center gap-2 pt-0.5">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[8.5px] font-mono font-bold uppercase tracking-widest bg-blue-50 text-[#3B7BF6] border border-blue-100/80">
-              <Sparkles className="w-2.5 h-2.5" /> Client Ledger
-            </span>
+      {/* ── 1. COMMAND RIBBON HEADER ── */}
+      <header className="border-b border-black/[0.06] pb-6 space-y-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+              <span className="text-[8.5px] sm:text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-[#3B7BF6] truncate">
+                Atelier Fulfillment Ledger
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-black uppercase tracking-tight text-[#0C0D11] truncate">
+              Orders & Boutique POS
+            </h1>
           </div>
-          <h1 className="text-xl sm:text-3xl md:text-4xl font-serif font-black uppercase tracking-tight text-[#0C0D11]">
-            Order Desk & Client Dossiers
-          </h1>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => fetchOrders(true)}
+              disabled={refreshing}
+              className="p-2.5 sm:p-3 rounded-full bg-white border border-black/[0.08] hover:border-[#0C0D11] text-[#0C0D11] transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+              title="Refresh Registry"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+
+            <Link
+              href="/admin"
+              className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-full bg-white border border-black/[0.08] hover:border-[#0C0D11] text-xs font-mono font-bold uppercase tracking-wider text-[#0C0D11] shadow-xs active:scale-95 transition-all"
+            >
+              Console
+            </Link>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => fetchOrders(true)}
-            disabled={refreshing}
-            className="p-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50"
-            title="Refresh Registry"
-            aria-label="Refresh Registry"
+        {/* ── 2. EXECUTIVE METRIC TILES ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          {/* Gross Settlement */}
+          <div className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-xs space-y-1.5">
+            <div className="flex items-center justify-between text-[#8E92A2]">
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Gross Settlement</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-2xs">
+                <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <p className="text-base sm:text-2xl font-black font-mono text-[#0C0D11] truncate">
+              ₹{grossRevenue.toLocaleString("en-IN")}
+            </p>
+            <span className="text-[8px] sm:text-[9px] font-mono font-bold text-emerald-700 uppercase tracking-widest block">
+              Audited Ledger
+            </span>
+          </div>
+
+          {/* Aggregate Pieces */}
+          <div
+            onClick={() => setStatusFilter("all")}
+            className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-xs space-y-1.5 cursor-pointer hover:border-[#0C0D11] transition-all"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-          </button>
-          <Link
-            href="/admin/products"
-            className="px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] text-xs font-mono font-bold uppercase tracking-wider text-[#0C0D11] hover:border-[#0C0D11] shadow-2xs transition-all active:scale-95"
+            <div className="flex items-center justify-between text-[#8E92A2]">
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Total Sales</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-50 text-[#3B7BF6] flex items-center justify-center shadow-2xs">
+                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <p className="text-base sm:text-2xl font-black font-mono text-[#0C0D11]">
+              {orders.length}
+            </p>
+            <span className="text-[8px] sm:text-[9px] font-mono font-bold text-[#3B7BF6] uppercase tracking-widest block">
+              Omnichannel Run
+            </span>
+          </div>
+
+          {/* Boutique POS */}
+          <div
+            onClick={() => setStatusFilter("manual-pos")}
+            className="p-4 sm:p-5 rounded-[24px] bg-emerald-50/40 border border-emerald-200/80 shadow-xs space-y-1.5 cursor-pointer hover:border-emerald-600 transition-all"
           >
-            Garments Studio
-          </Link>
+            <div className="flex items-center justify-between text-emerald-800">
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Boutique POS</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-2xs">
+                <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <p className="text-base sm:text-2xl font-black font-mono text-emerald-900">
+              {manualCount}
+            </p>
+            <span className="text-[8px] sm:text-[9px] font-mono font-bold text-emerald-700 uppercase tracking-widest block">
+              Counter Hand-Offs
+            </span>
+          </div>
+
+          {/* Active Dispatches */}
+          <div
+            onClick={() => setStatusFilter("processing")}
+            className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-xs space-y-1.5 cursor-pointer hover:border-[#0C0D11] transition-all"
+          >
+            <div className="flex items-center justify-between text-[#8E92A2]">
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">In Progress</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-2xs">
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <p className="text-base sm:text-2xl font-black font-mono text-amber-600">
+              {pendingDispatches}
+            </p>
+            <span className="text-[8px] sm:text-[9px] font-mono font-bold text-amber-600 uppercase tracking-widest block">
+              Awaiting Delivery
+            </span>
+          </div>
         </div>
       </header>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
-        {/* Horizontal Scrolling Status Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {statuses.map((st) => (
-            <button
-              type="button"
-              key={st.id}
-              onClick={() => setStatusFilter(st.id)}
-              className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
-                statusFilter === st.id
-                  ? "bg-[#0C0D11] text-white shadow-xs"
-                  : "bg-white/85 backdrop-blur-md text-[#8E92A2] border border-black/[0.06] hover:border-[#0C0D11] hover:text-[#0C0D11]"
-              }`}
-            >
-              {st.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Live Search Input */}
+      {/* ── 3. CONTROLS STRIP: SEARCH & HORIZONTAL FILTER PILLS ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-[26px] border border-black/[0.06] shadow-2xs">
         <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E92A2]" />
+          <Search className="w-3.5 h-3.5 text-[#8E92A2] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search reference, client, phone..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] focus:border-[#0C0D11] focus:bg-white outline-none text-xs font-medium placeholder:text-[#8E92A2] shadow-2xs transition-all"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search SKU, Patron, or Phone..."
+            className="w-full pl-9 pr-3.5 py-2.5 rounded-full bg-[#FAFAFC] border border-black/[0.07] text-xs font-mono outline-none focus:bg-white focus:border-[#0C0D11] transition-all shadow-2xs"
           />
+        </div>
+
+        {/* Horizontal Navigation Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+          {[
+            { id: "all", label: "All Records" },
+            { id: "manual-pos", label: `Boutique POS (${manualCount})`, icon: Store },
+            { id: "online", label: "Storefront Digital" },
+            { id: "received", label: "Received" },
+            { id: "processing", label: "Processing" },
+            { id: "delivered", label: "Delivered" },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = statusFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setStatusFilter(tab.id)}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[10px] font-mono uppercase font-bold transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
+                  active
+                    ? "bg-[#0C0D11] text-white shadow-2xs"
+                    : tab.id === "manual-pos"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
+                    : "bg-[#FAFAFC] text-[#4A4D59] border border-black/[0.06] hover:bg-white"
+                }`}
+              >
+                {Icon && <Icon className="w-3 h-3 text-emerald-600" />}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Content Area */}
+      {/* ── 4. TRANSACTIONS STREAM ── */}
       {loading ? (
-        <div className="py-24 text-center text-xs font-mono uppercase tracking-widest text-[#8E92A2]">
-          Loading Client Dispatches...
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="py-16 text-center bg-white/80 backdrop-blur-xl rounded-[28px] sm:rounded-[36px] border border-dashed border-black/[0.12] space-y-2 p-6 shadow-2xs">
-          <Package className="w-8 h-8 text-[#8E92A2] mx-auto opacity-70" />
-          <p className="font-serif font-black uppercase text-xs text-[#0C0D11]">
-            No Orders Found
+        <div className="py-28 flex flex-col items-center justify-center gap-3 bg-white rounded-[32px] border border-black/[0.06]">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0C0D11]" />
+          <p className="text-xs font-mono uppercase tracking-widest text-[#8E92A2]">
+            Synchronizing Records with Cloud Vault...
           </p>
-          <p className="text-[11px] font-mono text-[#8E92A2]">
-            No orders match the selected filter or query.
+        </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="py-24 text-center bg-white rounded-[32px] border border-dashed border-black/[0.08] space-y-2.5">
+          <Receipt className="w-10 h-10 text-neutral-300 mx-auto" />
+          <h3 className="font-serif font-black uppercase text-sm sm:text-base text-[#0C0D11]">
+            No Orders In This View
+          </h3>
+          <p className="text-xs font-mono text-[#8E92A2] max-w-sm mx-auto">
+            Try adjusting your search criteria or switching across active filter tabs.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* MOBILE VIEW (lg:hidden): Adaptive Action Cards */}
-          <div className="grid grid-cols-1 gap-3.5 lg:hidden">
-            {orders.map((o) => {
-              const clientName = o.shippingAddress?.fullName || o.user?.name || "Guest Customer";
-              const clientPhone = o.shippingAddress?.phone || o.user?.phone || "";
-              const clientCity = o.shippingAddress?.city || "IN";
-              const isRegistered = !!o.user?._id;
+        <>
+          {/* Mobile High-Density Cards (< 640px) */}
+          <div className="grid grid-cols-1 gap-3 sm:hidden">
+            {filteredOrders.map((o) => {
+              const isManual =
+                o.isManualEntry ||
+                o.orderNumber?.startsWith("ROC-POS") ||
+                o.orderNumber?.startsWith("ROC-MAN");
 
               return (
                 <div
                   key={o._id}
-                  className="bg-white/95 backdrop-blur-xl rounded-[24px] p-4 sm:p-5 border border-black/[0.06] shadow-xs space-y-3.5 ring-1 ring-black/[0.02]"
+                  className={`rounded-[24px] p-4 border shadow-2xs space-y-3 transition-colors ${
+                    isManual
+                      ? "bg-emerald-50/25 border-emerald-200/80"
+                      : "bg-white border-black/[0.06]"
+                  }`}
                 >
-                  {/* Top Bar: Number + Date + Registered Badge */}
-                  <div className="flex items-center justify-between border-b border-black/[0.04] pb-2.5">
-                    <div>
+                  <div className="flex items-center justify-between pb-2 border-b border-black/[0.05]">
+                    <div className="flex items-center gap-1.5">
+                      {isManual ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[8.5px] font-mono font-bold uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <Store className="w-2.5 h-2.5" /> Boutique POS
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[8.5px] font-mono font-bold uppercase bg-blue-50 text-[#3B7BF6] border border-blue-100">
+                          Storefront
+                        </span>
+                      )}
                       <span className="font-mono text-xs font-black text-[#0C0D11]">
                         {o.orderNumber}
-                      </span>
-                      <span className="text-[9.5px] text-[#8E92A2] font-mono block">
-                        {new Date(o.createdAt).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
                       </span>
                     </div>
 
                     <span
-                      className={`text-[8.5px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full ${
-                        isRegistered
-                          ? "bg-blue-50 text-blue-700 border border-blue-200/80"
-                          : "bg-neutral-100 text-neutral-600 border border-neutral-200"
+                      className={`text-[8.5px] font-mono uppercase px-2.5 py-0.5 rounded-full font-bold border ${
+                        o.orderStatus === "delivered"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : "bg-neutral-100 text-[#0C0D11] border-neutral-200"
                       }`}
                     >
-                      {isRegistered ? "Verified Member" : "Guest Checkout"}
+                      {o.orderStatus}
                     </span>
                   </div>
 
-                  {/* Customer Info & Value */}
-                  <div className="flex items-start justify-between gap-2 text-xs">
-                    <div className="space-y-0.5 min-w-0">
-                      <p className="font-serif font-black uppercase text-xs text-[#0C0D11] truncate">{clientName}</p>
-                      <p className="text-[11px] font-mono text-[#4A4D59] truncate">{clientCity}</p>
-                      {clientPhone && (
-                        <p className="text-[10px] font-mono text-[#8E92A2]">{clientPhone}</p>
-                      )}
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-12 h-15 rounded-xl overflow-hidden bg-neutral-100 border border-black/[0.06] shrink-0">
+                      <Image
+                        src={o.items?.[0]?.image || "/placeholder.jpg"}
+                        alt={o.items?.[0]?.name || "Piece"}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                      />
                     </div>
-                    <div className="text-right font-mono shrink-0">
-                      <span className="text-sm font-black text-[#0C0D11] block">
-                        ₹{Number(o.totalAmount || 0).toLocaleString("en-IN")}
-                      </span>
-                      <span
-                        className={`text-[8.5px] font-bold uppercase px-2 py-0.5 rounded-full inline-block mt-1 border ${
-                          o.paymentStatus === "paid"
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-200/80"
-                            : "bg-amber-50 text-amber-800 border-amber-200/80"
-                        }`}
-                      >
-                        {o.paymentMethod} • {o.paymentStatus}
-                      </span>
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <h4 className="font-serif font-bold uppercase text-xs text-[#0C0D11] truncate">
+                        {o.items?.[0]?.name || "Bespoke Silhouette"}
+                      </h4>
+                      <p className="text-[11px] font-mono text-[#4A4D59] truncate">
+                        Client: {o.shippingAddress?.fullName || "Walk-in Patron"}
+                      </p>
+                      <p className="text-[10px] font-mono text-[#8E92A2]">
+                        {o.paymentMethod?.toUpperCase()} • ₹
+                        {Number(o.totalAmount || 0).toLocaleString("en-IN")}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Status Dropdown & Inspection Action */}
-                  <div className="pt-2 flex items-center gap-2 border-t border-black/[0.04]">
-                    <select
-                      value={o.orderStatus}
-                      onChange={(e) => updateOrderStatus(o._id, e.target.value)}
-                      className="flex-1 py-2 px-3 rounded-xl bg-[#FAFAFC] border border-black/[0.07] font-mono text-[10.5px] font-bold uppercase outline-none focus:border-[#0C0D11] cursor-pointer"
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => advanceStatus(o._id, o.orderStatus)}
+                      disabled={updatingId === o._id || o.orderStatus === "delivered"}
+                      className="py-2.5 rounded-xl bg-[#0C0D11] text-white text-[10px] font-mono font-bold uppercase disabled:opacity-40 active:scale-95"
                     >
-                      <option value="received">Received</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="in_production">Tailoring</option>
-                      <option value="dispatched">Dispatched</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
+                      {o.orderStatus === "delivered" ? "Delivered ✓" : "Advance State →"}
+                    </button>
 
                     <button
                       type="button"
                       onClick={() => setSelectedOrder(o)}
-                      className="py-2 px-4 rounded-xl bg-[#0C0D11] hover:bg-[#1E2028] text-white text-[10.5px] font-mono font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
+                      className="py-2.5 rounded-xl bg-white border border-black/[0.08] text-[#0C0D11] text-[10px] font-mono font-bold uppercase flex items-center justify-center gap-1 shadow-2xs active:scale-95"
                     >
-                      Inspect
+                      <Eye className="w-3 h-3 text-[#3B7BF6]" /> Inspect Dossier
                     </button>
                   </div>
                 </div>
@@ -270,106 +421,113 @@ export default function AdminOrdersPage() {
             })}
           </div>
 
-          {/* DESKTOP VIEW (hidden lg:block): High-Fidelity Table */}
-          <div className="hidden lg:block bg-white/90 backdrop-blur-2xl rounded-[28px] border border-white/90 shadow-[0_16px_45px_-12px_rgba(12,13,17,0.04)] ring-1 ring-black/[0.03] overflow-hidden">
+          {/* Desktop Matrix Register (>= 640px) */}
+          <div className="hidden sm:block bg-white rounded-[32px] border border-black/[0.06] overflow-hidden shadow-xs">
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left text-xs min-w-[720px]">
                 <thead className="bg-[#FAFAFC] border-b border-black/[0.05] font-mono text-[9px] uppercase tracking-wider text-[#8E92A2]">
                   <tr>
-                    <th className="p-4 pl-6 font-bold">Reference</th>
-                    <th className="p-4 font-bold">Customer</th>
-                    <th className="p-4 font-bold">Dispatch City</th>
-                    <th className="p-4 font-bold">Settlement</th>
+                    <th className="p-4 pl-6 font-bold">Transaction Ref</th>
+                    <th className="p-4 font-bold">Channel</th>
+                    <th className="p-4 font-bold">Patron Credentials</th>
+                    <th className="p-4 font-bold">Piece Preview</th>
                     <th className="p-4 font-bold">Fulfillment Status</th>
-                    <th className="p-4 pr-6 text-right font-bold">Dossier</th>
+                    <th className="p-4 text-right font-bold">Settlement</th>
+                    <th className="p-4 pr-6 text-right font-bold">Inspect</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/[0.04]">
-                  {orders.map((o) => {
-                    const isRegistered = !!o.user?._id;
-                    const clientName =
-                      o.shippingAddress?.fullName || o.user?.name || "Guest Customer";
-                    const clientEmail =
-                      o.shippingAddress?.email || o.user?.email || "No email";
-                    const clientPhone =
-                      o.shippingAddress?.phone || o.user?.phone || "No phone";
+                  {filteredOrders.map((o) => {
+                    const isManual =
+                      o.isManualEntry ||
+                      o.orderNumber?.startsWith("ROC-POS") ||
+                      o.orderNumber?.startsWith("ROC-MAN");
 
                     return (
-                      <tr key={o._id} className="hover:bg-[#FAFAFC]/80 transition-colors">
-                        <td className="p-4 pl-6">
-                          <span className="font-mono font-black text-[#0C0D11] text-xs">
-                            {o.orderNumber}
-                          </span>
-                          <div className="text-[9.5px] text-[#8E92A2] font-mono">
-                            {new Date(o.createdAt).toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
+                      <tr
+                        key={o._id}
+                        className={`hover:bg-[#FAFAFC]/80 transition-colors ${
+                          isManual ? "bg-emerald-50/15" : ""
+                        }`}
+                      >
+                        <td className="p-4 pl-6 font-mono font-black text-[#0C0D11]">
+                          {o.orderNumber}
+                        </td>
+
+                        <td className="p-4">
+                          {isManual ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[8.5px] font-mono font-bold uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              <Store className="w-2.5 h-2.5" /> Boutique POS
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[8.5px] font-mono font-bold uppercase bg-blue-50 text-[#3B7BF6] border border-blue-100">
+                              Storefront
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="p-4">
+                          <p className="font-serif font-bold uppercase text-xs text-[#0C0D11] truncate max-w-[170px]">
+                            {o.shippingAddress?.fullName || "Guest Patron"}
+                          </p>
+                          <p className="text-[10px] font-mono text-[#8E92A2]">
+                            {o.shippingAddress?.phone || "No contact"} • {o.shippingAddress?.city || "Counter"}
+                          </p>
+                        </td>
+
+                        <td className="p-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="relative w-9 h-11 rounded-lg overflow-hidden bg-neutral-100 border border-black/[0.06] shrink-0">
+                              <Image
+                                src={o.items?.[0]?.image || "/placeholder.jpg"}
+                                alt="Garment"
+                                fill
+                                className="object-cover"
+                                sizes="36px"
+                              />
+                            </div>
+                            <span className="font-mono text-xs text-[#0C0D11] truncate max-w-[140px]">
+                              {o.items?.[0]?.name}
+                            </span>
                           </div>
                         </td>
 
                         <td className="p-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-serif font-bold uppercase text-[#0C0D11] text-xs">
-                              {clientName}
-                            </span>
-                            {isRegistered ? (
-                              <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
-                                Member
-                              </span>
-                            ) : (
-                              <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-neutral-100 text-neutral-600">
-                                Guest
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10.5px] text-[#8E92A2] font-mono">{clientEmail}</div>
-                          <div className="text-[10px] text-[#8E92A2] font-mono">{clientPhone}</div>
-                        </td>
-
-                        <td className="p-4 font-medium text-[#4A4D59]">
-                          {o.shippingAddress?.city || "Metro"}, {o.shippingAddress?.state || "IN"}
-                        </td>
-
-                        <td className="p-4 font-mono">
-                          <div className="font-black text-[#0C0D11] text-xs">
-                            ₹{Number(o.totalAmount || 0).toLocaleString("en-IN")}
-                          </div>
                           <span
-                            className={`inline-block mt-0.5 text-[8.5px] font-bold px-2 py-0.5 rounded-full uppercase border ${
-                              o.paymentStatus === "paid"
-                                ? "bg-emerald-50 text-emerald-800 border-emerald-200/80"
-                                : "bg-amber-50 text-amber-800 border-amber-200/80"
+                            className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase border ${
+                              o.orderStatus === "delivered"
+                                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                : "bg-[#FAFAFC] text-[#0C0D11] border-black/[0.06]"
                             }`}
                           >
-                            {o.paymentMethod} • {o.paymentStatus}
+                            {o.orderStatus}
                           </span>
                         </td>
 
-                        <td className="p-4">
-                          <select
-                            value={o.orderStatus}
-                            onChange={(e) => updateOrderStatus(o._id, e.target.value)}
-                            className="px-3 py-1.5 rounded-xl bg-[#FAFAFC] border border-black/[0.07] font-mono text-[10px] font-bold uppercase outline-none focus:border-[#0C0D11] cursor-pointer"
-                          >
-                            <option value="received">Received</option>
-                            <option value="confirmed">Confirmed</option>
-                            <option value="in_production">Tailoring</option>
-                            <option value="dispatched">Dispatched</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
-                          </select>
+                        <td className="p-4 text-right font-mono font-black text-xs sm:text-sm text-[#0C0D11]">
+                          ₹{Number(o.totalAmount || 0).toLocaleString("en-IN")}
                         </td>
 
                         <td className="p-4 pr-6 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrder(o)}
-                            className="px-3.5 py-1.5 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-[10px] font-mono font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
-                          >
-                            Inspect Client
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => advanceStatus(o._id, o.orderStatus)}
+                              disabled={updatingId === o._id || o.orderStatus === "delivered"}
+                              className="px-3.5 py-1.5 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-[9.5px] font-mono font-bold uppercase transition-all shadow-2xs active:scale-95 disabled:opacity-35 cursor-pointer"
+                            >
+                              {o.orderStatus === "delivered" ? "Done" : "Advance →"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOrder(o)}
+                              className="p-1.5 rounded-full bg-white hover:bg-neutral-100 border border-black/[0.07] text-[#0C0D11] transition-all cursor-pointer shadow-2xs"
+                              title="Inspect Full Dossier"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-[#3B7BF6]" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -378,168 +536,184 @@ export default function AdminOrdersPage() {
               </table>
             </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Slide-over Inspection Drawer / Modal */}
+      {/* ── 5. HAUTE COUTURE INSPECTION DOSSIER (SLIDING SERRATED VOUCHER) ── */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-[#0C0D11]/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg sm:max-w-xl bg-white h-full shadow-2xl overflow-y-auto p-5 sm:p-8 space-y-6 flex flex-col justify-between">
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-black/[0.05] pb-4">
-                <div>
-                  <span className="text-[9.5px] font-mono font-black uppercase text-[#3B7BF6] tracking-wider">
-                    Client Dossier
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-serif font-black uppercase tracking-tight text-[#0C0D11]">
-                    {selectedOrder.orderNumber}
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrder(null)}
-                  className="p-2 rounded-full text-[#8E92A2] hover:text-[#0C0D11] hover:bg-neutral-100 cursor-pointer active:scale-90 transition-all"
-                  aria-label="Close Dossier"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+        <div className="fixed inset-0 z-[99999] flex justify-end overflow-hidden">
+          {/* Backdrop */}
+          <div
+            onClick={() => setSelectedOrder(null)}
+            className="absolute inset-0 bg-[#0C0D11]/75 backdrop-blur-sm transition-opacity duration-200"
+          />
 
-              {/* 1. Client Identity */}
-              <div className="p-4 sm:p-5 rounded-[22px] bg-[#FAFAFC] border border-black/[0.05] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-[#0C0D11]" />
-                    <span className="text-xs font-black uppercase tracking-wider text-[#0C0D11]">
-                      Client Identity
-                    </span>
-                  </div>
-                  {selectedOrder.user ? (
-                    <span className="inline-flex items-center gap-1 text-[8.5px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      <ShieldCheck className="w-3 h-3" /> Registered
-                    </span>
-                  ) : (
-                    <span className="text-[8.5px] font-mono uppercase px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-700">
-                      Guest
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
-                  <div>
-                    <span className="text-[9.5px] text-[#8E92A2] font-mono uppercase block">Full Name</span>
-                    <p className="font-serif font-bold uppercase text-[#0C0D11]">
-                      {selectedOrder.shippingAddress?.fullName || selectedOrder.user?.name}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[9.5px] text-[#8E92A2] font-mono uppercase block">Email Address</span>
-                    <p className="font-mono text-[#0C0D11] truncate">
-                      {selectedOrder.shippingAddress?.email || selectedOrder.user?.email}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[9.5px] text-[#8E92A2] font-mono uppercase block">Phone / Mobile</span>
-                    <p className="font-mono text-[#0C0D11]">
-                      {selectedOrder.shippingAddress?.phone}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[9.5px] text-[#8E92A2] font-mono uppercase block">Customer Account</span>
-                    <p className="font-mono text-[#0C0D11]">
-                      {selectedOrder.user?.createdAt
-                        ? `Member since ${new Date(selectedOrder.user.createdAt).getFullYear()}`
-                        : "One-Time Buyer"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Direct Communications */}
-                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-t border-black/[0.05]">
-                  <a
-                    href={`https://wa.me/${(selectedOrder.shippingAddress?.phone || "").replace(/[^0-9]/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 py-2 rounded-xl bg-white border border-black/[0.06] hover:border-emerald-500 text-emerald-800 text-[10px] font-mono font-bold uppercase flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition-all"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp Client
-                  </a>
-                  <a
-                    href={`mailto:${selectedOrder.shippingAddress?.email}?subject=Radha Outfit Collection - Order ${selectedOrder.orderNumber}`}
-                    className="flex-1 py-2 rounded-xl bg-white border border-black/[0.06] hover:border-blue-500 text-blue-700 text-[10px] font-mono font-bold uppercase flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition-all"
-                  >
-                    <Mail className="w-3.5 h-3.5" /> Email Notice
-                  </a>
-                </div>
-              </div>
-
-              {/* 2. Dispatch Address */}
-              <div className="p-4 sm:p-5 rounded-[22px] bg-[#FAFAFC] border border-black/[0.05] space-y-1.5">
-                <div className="flex items-center gap-1.5 text-xs font-black uppercase text-[#0C0D11]">
-                  <MapPin className="w-4 h-4 text-rose-500" />
-                  <span>Dispatch Destination</span>
-                </div>
-                <p className="text-xs text-[#4A4D59] leading-relaxed">
-                  {selectedOrder.shippingAddress?.street}
-                  <br />
-                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} -{" "}
-                  {selectedOrder.shippingAddress?.postalCode}
-                </p>
-              </div>
-
-              {/* 3. Items Ordered */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#0C0D11]">
-                  Curated Garments ({selectedOrder.items?.length || 0})
-                </h4>
-                <div className="space-y-2">
-                  {selectedOrder.items?.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-2xl bg-white border border-black/[0.06] flex items-center justify-between gap-3 shadow-2xs"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-[#FAFAFC] shrink-0 border border-black/[0.04]">
-                          <Image
-                            src={item.image || "/placeholder.jpg"}
-                            alt={item.name}
-                            fill
-                            sizes="60px"
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-serif font-bold uppercase text-[#0C0D11] truncate">{item.name}</p>
-                          <p className="text-[10px] font-mono text-[#8E92A2]">
-                            Size: <span className="text-[#0C0D11] font-bold">{item.size || "M"}</span> • Qty:{" "}
-                            {item.quantity}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="font-mono text-xs font-black text-[#0C0D11] shrink-0">
-                        ₹{((Number(item.price) || 0) * (Number(item.quantity) || 1)).toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Total Settlement Footer */}
-            <div className="border-t border-black/[0.05] pt-4 space-y-3">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-[#8E92A2]">Net Settlement</span>
-                <span className="text-base font-black text-[#0C0D11]">
-                  ₹{Number(selectedOrder.totalAmount || 0).toLocaleString("en-IN")}
-                </span>
-              </div>
+          {/* Drawer Body */}
+          <div className="relative z-10 w-full sm:max-w-md bg-white h-full shadow-[0_30px_70px_-15px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
+            {/* Top Vault Header */}
+            <div className="bg-[#0C0D11] text-white px-6 py-5 text-center space-y-1 relative shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedOrder(null)}
-                className="w-full py-3.5 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-98 cursor-pointer shadow-xs"
+                className="absolute top-4 right-4 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close"
               >
-                Close Dossier
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/10 border border-white/20 text-amber-300 text-[8px] font-mono font-bold uppercase tracking-widest">
+                <Sparkles className="w-2.5 h-2.5" />
+                <span>Atelier Verified Dossier</span>
+              </div>
+
+              <h3 className="font-serif font-black uppercase text-base tracking-tight text-white">
+                Radha Outfit Collection
+              </h3>
+              <p className="text-[9.5px] font-mono text-white/60 tracking-wider">
+                {selectedOrder.orderNumber}
+              </p>
+            </div>
+
+            {/* Serrated Ticket Notch Graphics */}
+            <div className="relative flex items-center justify-between px-[-10px] bg-white">
+              <div className="w-5 h-5 rounded-full bg-[#0C0D11] -ml-2.5 -mt-2.5 shadow-inner" />
+              <div className="flex-1 border-b-2 border-dashed border-neutral-200 mx-2" />
+              <div className="w-5 h-5 rounded-full bg-[#0C0D11] -mr-2.5 -mt-2.5 shadow-inner" />
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="p-6 overflow-y-auto space-y-5 text-xs font-mono" style={{ overscrollBehavior: "contain" }}>
+              {/* Origin Badge */}
+              {selectedOrder.isManualEntry ||
+              selectedOrder.orderNumber?.startsWith("ROC-POS") ||
+              selectedOrder.orderNumber?.startsWith("ROC-MAN") ? (
+                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 text-emerald-900 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold uppercase text-[10.5px]">
+                    <Store className="w-4 h-4 text-emerald-700" />
+                    <span>Direct Boutique / Counter Sale</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-700 font-sans">
+                    Hand-entered at the boutique POS desk. Fulfilled immediately on premises.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 text-[#3B7BF6] space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold uppercase text-[10.5px]">
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>Online Storefront Order</span>
+                  </div>
+                  <p className="text-[10px] text-blue-700 font-sans">
+                    Patron placed order through online digital storefront rails.
+                  </p>
+                </div>
+              )}
+
+              {/* Garment Piece Breakdown */}
+              <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] space-y-3">
+                <span className="text-[9px] uppercase tracking-wider text-[#8E92A2] block font-bold">
+                  Ordered Silhouettes
+                </span>
+
+                {selectedOrder.items?.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className="relative w-13 h-16 rounded-xl overflow-hidden bg-white border border-black/[0.06] shrink-0">
+                      <Image
+                        src={item.image || "/placeholder.jpg"}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                        sizes="56px"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <h4 className="font-serif font-bold uppercase text-xs text-[#0C0D11] truncate">
+                        {item.name}
+                      </h4>
+                      <p className="text-[10px] text-[#8E92A2]">
+                        Fit: {item.size || "Free Size"} • Qty: {item.quantity || 1}
+                      </p>
+                      <p className="font-black text-xs text-[#0C0D11]">
+                        ₹{Number(item.price || 0).toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Patron Profile & Payment */}
+              <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] space-y-2.5">
+                <span className="text-[9px] uppercase tracking-wider text-[#8E92A2] block font-bold">
+                  Client & Settlement Profile
+                </span>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between pb-1 border-b border-black/[0.04]">
+                    <span className="text-[#8E92A2]">Patron</span>
+                    <span className="font-bold text-[#0C0D11]">
+                      {selectedOrder.shippingAddress?.fullName || "Guest Patron"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between pb-1 border-b border-black/[0.04]">
+                    <span className="text-[#8E92A2]">Contact</span>
+                    <span className="text-[#0C0D11]">
+                      {selectedOrder.shippingAddress?.phone || "N/A"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between pb-1 border-b border-black/[0.04]">
+                    <span className="text-[#8E92A2]">Destination</span>
+                    <span className="text-[#0C0D11]">
+                      {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between pb-1 border-b border-black/[0.04]">
+                    <span className="text-[#8E92A2]">Settlement Mode</span>
+                    <span className="font-bold uppercase text-emerald-700">
+                      {selectedOrder.paymentMethod} • {selectedOrder.paymentStatus}
+                    </span>
+                  </div>
+
+                  {selectedOrder.shippingAddress?.street && (
+                    <div className="pt-1">
+                      <span className="text-[#8E92A2] block pb-0.5">Notes / Alterations:</span>
+                      <p className="font-sans text-[11px] text-[#4A4D59] bg-white p-2.5 rounded-xl border border-black/[0.04]">
+                        {selectedOrder.shippingAddress.street}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Total Payable Block */}
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-[#0C0D11] text-white">
+                <span className="font-serif font-black uppercase text-xs">Total Settlement</span>
+                <span className="font-mono font-black text-lg text-emerald-400">
+                  ₹{Number(selectedOrder.totalAmount).toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="p-4 border-t border-black/[0.06] grid grid-cols-2 gap-2 bg-white shrink-0">
+              <Link
+                href={`/account/orders/${selectedOrder.orderNumber}/invoice`}
+                target="_blank"
+                className="py-3 rounded-full bg-[#FAFAFC] hover:bg-neutral-100 text-[#0C0D11] border border-black/[0.07] text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#3B7BF6]" />
+                <span>Invoice</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => advanceStatus(selectedOrder._id, selectedOrder.orderStatus)}
+                disabled={updatingId === selectedOrder._id || selectedOrder.orderStatus === "delivered"}
+                className="py-3 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer active:scale-95"
+              >
+                <span>Advance</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

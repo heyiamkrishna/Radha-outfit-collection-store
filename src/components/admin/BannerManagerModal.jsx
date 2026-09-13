@@ -1,48 +1,98 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
-import { Sparkles, Plus, Loader2, X, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
+import {
+  Plus,
+  X,
+  Loader2,
+  Sparkles,
+  UploadCloud,
+  Sliders,
+  CheckCircle2,
+  ExternalLink,
+  Eye,
+} from "lucide-react";
 
 export default function BannerManagerModal({ onCreated }) {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
 
   const initialForm = {
     title: "",
     subtitle: "",
-    badge: "Radha Exclusive",
-    tagline: "Starting at ₹4,999",
-    ctaText: "Explore Piece",
-    ctaLink: "/shop",
+    badge: "Exclusive Run",
+    link: "/shop",
     image: "",
-    bgGradient: "from-[#FFF5F5] via-[#FDF2F4] to-[#FDE8EC]",
-    order: 0,
+    isActive: true,
   };
 
   const [form, setForm] = useState(initialForm);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Strict background scroll-locking
+  useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     }
     return () => {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     };
   }, [open]);
 
-  const gradientOptions = [
-    { label: "Rose Dust", val: "from-[#FFF5F5] via-[#FDF2F4] to-[#FDE8EC]" },
-    { label: "Sky Atelier", val: "from-[#F0F4FF] via-[#F5F8FF] to-[#E8EFFF]" },
-    { label: "Champagne Silk", val: "from-[#FBF8F2] via-[#F6F2EA] to-[#ECE6D8]" },
-    { label: "Obsidian Slate", val: "from-[#F2F3F7] via-[#E8EAF0] to-[#DFE2EB]" },
-  ];
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Banner file exceeds 5MB limit.");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError("");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to upload banner image.");
+
+      setForm((prev) => ({ ...prev, image: data.url }));
+    } catch (err) {
+      setError(err.message || "Failed to upload file.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.image.trim()) {
+      setError("Please upload or enter a hero banner image.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -54,14 +104,13 @@ export default function BannerManagerModal({ onCreated }) {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to publish hero slide.");
+      if (!res.ok) throw new Error(data.error || "Failed to create hero banner.");
 
-      setOpen(false);
       setForm(initialForm);
-
+      setOpen(false);
       if (onCreated) onCreated(data.banner || data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -69,204 +118,242 @@ export default function BannerManagerModal({ onCreated }) {
 
   return (
     <>
+      {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#0C0D11] text-white text-xs font-black uppercase tracking-wider hover:bg-[#3B7BF6] transition-all shadow-sm active:scale-95 cursor-pointer"
+        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full bg-white border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] text-xs font-mono font-bold uppercase tracking-wider shadow-2xs active:scale-95 transition-all cursor-pointer"
       >
-        <Plus className="w-4 h-4 text-[#3B7BF6]" />
+        <Sliders className="w-3.5 h-3.5 text-amber-500" />
         <span>Add Slider Banner</span>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-[#0C0D11]/60 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-white rounded-[32px] p-5 sm:p-8 border border-[#E8EBF2] shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#F0F2F6] pb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-full bg-[#F4F5F9] flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-[#3B7BF6]" />
-                </span>
-                <div>
-                  <h3 className="font-serif font-black text-sm sm:text-base uppercase tracking-tight text-[#0C0D11]">
-                    New Hero Carousel Slide
-                  </h3>
-                  <p className="text-[11px] text-[#8E92A2] font-mono">
-                    Dynamic promotional banner showcase
-                  </p>
+      {/* ── ISOLATED PORTAL MODAL ── */}
+      {mounted &&
+        open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[99999] flex flex-col justify-end sm:justify-center items-center overflow-hidden"
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100dvh",
+            }}
+          >
+            {/* Backdrop */}
+            <div
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 bg-[#0C0D11]/75 backdrop-blur-md"
+              style={{ position: "absolute", inset: 0 }}
+              aria-hidden="true"
+            />
+
+            {/* Centered Modal Card */}
+            <div
+              className="relative z-10 w-full sm:max-w-lg bg-white rounded-t-[28px] sm:rounded-[36px] border border-black/[0.08] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+              style={{ maxHeight: "90dvh" }}
+            >
+              {/* Mobile grab bar */}
+              <div className="w-12 h-1 bg-neutral-300 rounded-full mx-auto mt-2.5 sm:hidden shrink-0" />
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-black/[0.06] bg-white shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <Sliders className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-serif font-black uppercase tracking-tight text-[#0C0D11] text-sm sm:text-base truncate">
+                      Add Carousel Slide
+                    </h3>
+                    <p className="text-[10px] sm:text-[10.5px] text-[#8E92A2] font-mono truncate">
+                      Publish promotional hero graphic to homepage
+                    </p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-neutral-100 text-[#8E92A2] hover:text-[#0C0D11] transition-colors cursor-pointer active:scale-90"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-1.5 rounded-full text-[#8E92A2] hover:text-[#0C0D11] hover:bg-[#F4F5F9] transition-colors cursor-pointer"
-                aria-label="Close modal"
+
+              {/* Form Content */}
+              <form
+                onSubmit={handleSubmit}
+                className="overflow-y-auto px-5 py-4 sm:p-6 space-y-4 text-xs"
+                style={{ overscrollBehavior: "contain" }}
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+                {error && (
+                  <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs font-mono font-medium border border-rose-200">
+                    {error}
+                  </div>
+                )}
 
-            {error && (
-              <div className="p-3.5 rounded-2xl bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
-                  Main Headline *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g. FESTIVE SILK COLLECTION"
-                  className="w-full px-4 py-2.5 rounded-2xl bg-[#F4F5F9] border border-[#E8EBF2] focus:border-[#0C0D11] outline-none font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
-                  Secondary Subtitle
-                </label>
-                <input
-                  type="text"
-                  value={form.subtitle}
-                  onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-                  placeholder="e.g. Handcrafted tissue silk and gold zardozi"
-                  className="w-full px-4 py-2.5 rounded-2xl bg-[#F4F5F9] border border-[#E8EBF2] focus:border-[#0C0D11] outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Banner Title */}
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
-                    Pill Badge
+                  <label className="font-mono font-bold uppercase tracking-wider text-[#0C0D11] block mb-1 text-[10px]">
+                    Banner Headline *
                   </label>
                   <input
                     type="text"
-                    value={form.badge}
-                    onChange={(e) => setForm({ ...form, badge: e.target.value })}
-                    placeholder="e.g. Radha Exclusive"
-                    className="w-full px-4 py-2.5 rounded-2xl bg-[#F4F5F9] border border-[#E8EBF2] outline-none font-medium"
+                    required
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    placeholder="e.g. The Royal Heritage Collection '26"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAFAFC] border border-black/[0.08] focus:bg-white focus:border-[#0C0D11] outline-none text-xs font-medium transition-all"
                   />
                 </div>
-                <div>
-                  <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
-                    Price Tagline
-                  </label>
-                  <input
-                    type="text"
-                    value={form.tagline}
-                    onChange={(e) => setForm({ ...form, tagline: e.target.value })}
-                    placeholder="e.g. Flat 30% Off"
-                    className="w-full px-4 py-2.5 rounded-2xl bg-[#F4F5F9] border border-[#E8EBF2] outline-none font-mono"
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
-                  Garment Visual URL *
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <ImageIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E92A2]" />
+                {/* Subtitle & Badge */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-mono font-bold uppercase tracking-wider text-[#0C0D11] block mb-1 text-[10px]">
+                      Accent Badge
+                    </label>
                     <input
-                      type="url"
-                      required
-                      value={form.image}
-                      onChange={(e) => setForm({ ...form, image: e.target.value })}
-                      placeholder="https://images.unsplash.com/... or CDN URL"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#F4F5F9] border border-[#E8EBF2] outline-none font-mono text-[11px]"
+                      type="text"
+                      value={form.badge}
+                      onChange={(e) => setForm({ ...form, badge: e.target.value })}
+                      placeholder="e.g. Haute Couture Run"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAFAFC] border border-black/[0.08] focus:bg-white focus:border-[#0C0D11] outline-none text-xs font-medium transition-all"
                     />
                   </div>
+
+                  <div>
+                    <label className="font-mono font-bold uppercase tracking-wider text-[#0C0D11] block mb-1 text-[10px]">
+                      Destination Link
+                    </label>
+                    <input
+                      type="text"
+                      value={form.link}
+                      onChange={(e) => setForm({ ...form, link: e.target.value })}
+                      placeholder="/shop or /category/women"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAFAFC] border border-black/[0.08] focus:bg-white focus:border-[#0C0D11] outline-none font-mono text-[11px] transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Subtitle */}
+                <div>
+                  <label className="font-mono font-bold uppercase tracking-wider text-[#0C0D11] block mb-1 text-[10px]">
+                    Subtitle / Description
+                  </label>
+                  <input
+                    type="text"
+                    value={form.subtitle}
+                    onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+                    placeholder="Handcrafted Zardozi silhouettes for grand nuptials."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAFAFC] border border-black/[0.08] focus:bg-white focus:border-[#0C0D11] outline-none text-xs font-medium transition-all"
+                  />
+                </div>
+
+                {/* Image Upload Area */}
+                <div className="p-3.5 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] space-y-2.5">
+                  <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase">
+                    <span>Banner Visual Asset *</span>
+                    <span className="text-[#8E92A2]">21:9 or 16:9 Landscape</span>
+                  </div>
+
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-3.5 px-3 rounded-xl border-2 border-dashed border-neutral-300 hover:border-[#0C0D11] bg-white flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    {uploading ? (
+                      <div className="flex items-center gap-2 text-[#3B7BF6]">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="font-mono text-xs">Uploading asset...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-5 h-5 text-amber-500" />
+                        <span className="text-xs font-bold text-[#0C0D11]">
+                          Click to upload high-res banner
+                        </span>
+                        <span className="text-[9px] text-[#8E92A2] font-mono">
+                          PNG, JPG, WEBP (min 1600x800 recommended)
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Image URL fallback */}
+                  <input
+                    type="url"
+                    value={form.image}
+                    onChange={(e) => setForm({ ...form, image: e.target.value })}
+                    placeholder="Or enter direct image CDN URL"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-black/[0.08] text-[11px] font-mono outline-none focus:border-[#0C0D11]"
+                  />
+
+                  {/* Live Banner Aspect Ratio Preview */}
                   {form.image && (
-                    <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-[#F4F5F9] border border-[#E8EBF2] shrink-0">
+                    <div className="relative aspect-[2.4/1] w-full rounded-xl overflow-hidden bg-neutral-100 border border-black/[0.08] shadow-2xs mt-2">
                       <Image
                         src={form.image}
-                        alt="Preview"
+                        alt="Banner Preview"
                         fill
-                        sizes="40px"
                         className="object-cover"
+                        sizes="(max-width: 640px) 100vw, 500px"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 flex flex-col justify-end p-3 text-white">
+                        <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-amber-300">
+                          {form.badge || "FEATURED"}
+                        </span>
+                        <p className="font-serif font-black text-xs uppercase truncate">
+                          {form.title || "Live Slide Headline Preview"}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
-                    Button Text
-                  </label>
+                {/* Active Checkbox Toggle */}
+                <label className="flex items-center gap-2 cursor-pointer pt-1">
                   <input
-                    type="text"
-                    value={form.ctaText}
-                    onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
-                    placeholder="Order Piece"
-                    className="w-full px-4 py-2.5 rounded-2xl bg-[#F4F5F9] border border-[#E8EBF2] outline-none font-medium"
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                    className="w-4 h-4 rounded border-black/[0.2] text-[#0C0D11] focus:ring-0 cursor-pointer"
                   />
-                </div>
-                <div>
-                  <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
-                    Target Destination
-                  </label>
-                  <div className="relative">
-                    <LinkIcon className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E92A2]" />
-                    <input
-                      type="text"
-                      value={form.ctaLink}
-                      onChange={(e) => setForm({ ...form, ctaLink: e.target.value })}
-                      placeholder="/shop?category=women"
-                      className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[#F4F5F9] border border-[#E8EBF2] outline-none font-mono text-[11px]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1.5">
-                  Atelier Color Palette
+                  <span className="text-xs font-mono font-bold text-[#0C0D11] uppercase tracking-wider text-[10.5px]">
+                    Display Immediately on Live Homepage
+                  </span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {gradientOptions.map((opt) => (
-                    <button
-                      key={opt.val}
-                      type="button"
-                      onClick={() => setForm({ ...form, bgGradient: opt.val })}
-                      className={`p-2.5 rounded-2xl border text-left flex items-center justify-between cursor-pointer transition-all ${
-                        form.bgGradient === opt.val
-                          ? "border-[#0C0D11] bg-white font-bold shadow-2xs"
-                          : "border-[#E8EBF2] bg-[#F8F9FC] text-[#8E92A2]"
-                      }`}
-                    >
-                      <span className="text-[11px]">{opt.label}</span>
-                      <div className={`w-4 h-4 rounded-full border border-black/10 bg-gradient-to-r ${opt.val}`} />
-                    </button>
-                  ))}
-                </div>
-              </div>
 
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-full bg-[#0C0D11] hover:bg-[#3B7BF6] text-white font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    "Publish Hero Slide"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                {/* Submit Action */}
+                <div className="pt-2 sticky bottom-0 bg-white pb-1">
+                  <button
+                    type="submit"
+                    disabled={loading || uploading}
+                    className="w-full py-3.5 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white font-mono font-bold uppercase tracking-wider text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-95"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      "Publish Carousel Slide"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }

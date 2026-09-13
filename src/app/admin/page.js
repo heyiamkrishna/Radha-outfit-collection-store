@@ -27,9 +27,11 @@ import {
   TrendingUp,
   Layers,
   ArrowRight,
+  Receipt,
 } from "lucide-react";
 import BannerManagerModal from "@/components/admin/BannerManagerModal";
 import AddProductModal from "@/components/admin/AddProductModal";
+import ManualOrderModal from "@/components/admin/ManualOrderModal";
 import QRScannerModal from "@/components/admin/qr/QRScannerModal";
 import QRPreviewModal from "@/components/admin/qr/QRPreviewModal";
 import InventoryAuditModal from "@/components/admin/InventoryAuditModal";
@@ -238,7 +240,7 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FC] gap-3 px-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFBFD] gap-3 px-4">
         <Loader2 className="w-8 h-8 animate-spin text-[#0C0D11]" />
         <p className="text-xs font-mono uppercase tracking-widest text-[#8E92A2] text-center">
           Loading Atelier Intelligence...
@@ -249,8 +251,8 @@ export default function AdminDashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC] p-4">
-        <div className="p-6 sm:p-8 bg-white/95 backdrop-blur-2xl border border-white/90 ring-1 ring-black/[0.04] rounded-[32px] text-center space-y-4 max-w-md w-full shadow-2xl animate-in zoom-in-95">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFD] p-4">
+        <div className="p-6 sm:p-8 bg-white border border-black/[0.06] rounded-[32px] text-center space-y-4 max-w-md w-full shadow-2xl">
           <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-100">
             <XCircle className="w-6 h-6" />
           </div>
@@ -287,10 +289,10 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#FBFBFC] text-[#0C0D11] pt-4 sm:pt-8 pb-28 px-3.5 sm:px-6 md:px-10 max-w-7xl mx-auto space-y-6 sm:space-y-10 selection:bg-[#0C0D11] selection:text-white overflow-x-hidden animate-luxury-fade">
-      {/* ── Ambient Radial Atmosphere ── */}
-      <div className="pointer-events-none absolute top-[-5%] left-1/4 w-[550px] h-[550px] bg-gradient-to-br from-blue-100/30 via-indigo-50/15 to-transparent rounded-full blur-3xl -z-10" />
-      <div className="pointer-events-none absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-gradient-to-tl from-rose-100/20 via-amber-50/20 to-transparent rounded-full blur-3xl -z-10" />
+    <div className="relative min-h-screen bg-[#FAFBFD] text-[#0C0D11] pt-4 sm:pt-8 pb-28 px-3.5 sm:px-6 md:px-10 max-w-7xl mx-auto space-y-6 sm:space-y-10 selection:bg-[#0C0D11] selection:text-white">
+      {/* Background Atmosphere */}
+      <div className="pointer-events-none fixed top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-blue-100/25 via-indigo-50/15 to-transparent rounded-full blur-3xl -z-10" />
+      <div className="pointer-events-none fixed bottom-10 right-0 w-[500px] h-[500px] bg-gradient-to-tl from-rose-100/20 via-amber-50/15 to-transparent rounded-full blur-3xl -z-10" />
 
       {/* ── 1. HEADER & COMMAND BAR ── */}
       <header className="border-b border-black/[0.05] pb-5 sm:pb-6 space-y-4">
@@ -299,7 +301,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span className="text-[8.5px] sm:text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-[#3B7BF6] truncate">
-                Atelier Intelligence Console
+                Atelier Executive Console
               </span>
             </div>
             <h1 className="text-xl sm:text-3xl md:text-4xl font-serif font-black uppercase tracking-tight text-[#0C0D11] truncate">
@@ -311,7 +313,7 @@ export default function AdminDashboardPage() {
             type="button"
             onClick={() => fetchDashboardData(true)}
             disabled={refreshing}
-            className="p-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
+            className="p-2.5 rounded-full bg-white border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
             title="Refresh All Data"
             aria-label="Refresh Data"
           >
@@ -320,11 +322,11 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Action Controls Strip */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-2.5 pt-1">
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 pt-1">
           <button
             type="button"
             onClick={() => setAuditOpen(true)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] text-[10.5px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-2xs active:scale-95 transition-all cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-white border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] text-xs font-mono font-bold uppercase tracking-wider shadow-2xs active:scale-95 transition-all cursor-pointer"
           >
             <History className="w-3.5 h-3.5 text-[#3B7BF6]" />
             <span>Audit Log</span>
@@ -333,30 +335,28 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setScannerOpen(true)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] text-[10.5px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-2xs active:scale-95 transition-all cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-white border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] text-xs font-mono font-bold uppercase tracking-wider shadow-2xs active:scale-95 transition-all cursor-pointer"
           >
             <Scan className="w-3.5 h-3.5 text-[#3B7BF6]" />
             <span>Scan QR</span>
           </button>
 
-          <div className="w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto [&>button]:justify-center">
-            <BannerManagerModal onCreated={() => fetchDashboardData(true)} />
-          </div>
+          <BannerManagerModal onCreated={() => fetchDashboardData(true)} />
 
-          <div className="w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto [&>button]:justify-center">
-            <AddProductModal onCreated={() => fetchDashboardData(true)} />
-          </div>
+          <AddProductModal onCreated={() => fetchDashboardData(true)} />
+
+          <ManualOrderModal onCreated={() => fetchDashboardData(true)} />
 
           <Link
             href="/admin/products"
-            className="w-full sm:w-auto px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[10.5px] sm:text-xs font-mono font-bold uppercase tracking-wider text-[#0C0D11] text-center shadow-2xs active:scale-95 transition-all"
+            className="px-4 py-2.5 rounded-full bg-white border border-black/[0.07] hover:border-[#0C0D11] text-xs font-mono font-bold uppercase tracking-wider text-[#0C0D11] text-center shadow-2xs active:scale-95 transition-all"
           >
             Garments
           </Link>
 
           <Link
             href="/admin/orders"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-[10.5px] sm:text-xs font-mono font-black uppercase tracking-widest shadow-xs text-center active:scale-95 transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-xs font-mono font-bold uppercase tracking-wider shadow-xs text-center active:scale-95 transition-all"
           >
             <ShoppingBag className="w-3.5 h-3.5 text-[#3B7BF6]" />
             <span>Orders Desk</span>
@@ -367,7 +367,7 @@ export default function AdminDashboardPage() {
       {/* ── 2. EXECUTIVE METRICS GRID ── */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Gross Revenue */}
-        <div className="p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-white/90 shadow-[0_12px_30px_-10px_rgba(12,13,17,0.03)] ring-1 ring-black/[0.03] space-y-1.5">
+        <div className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-2xs space-y-1.5">
           <div className="flex items-center justify-between text-[#8E92A2]">
             <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Gross Revenue</span>
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-2xs">
@@ -385,7 +385,7 @@ export default function AdminDashboardPage() {
         {/* Customer Orders */}
         <Link
           href="/admin/orders"
-          className="group p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-white/90 shadow-[0_12px_30px_-10px_rgba(12,13,17,0.03)] ring-1 ring-black/[0.03] hover:border-black/20 transition-all space-y-1.5"
+          className="group p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-2xs hover:border-[#0C0D11] transition-all space-y-1.5"
         >
           <div className="flex items-center justify-between text-[#8E92A2]">
             <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Client Orders</span>
@@ -402,7 +402,7 @@ export default function AdminDashboardPage() {
         </Link>
 
         {/* Total Stock Units */}
-        <div className="p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-white/90 shadow-[0_12px_30px_-10px_rgba(12,13,17,0.03)] ring-1 ring-black/[0.03] space-y-1.5">
+        <div className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-2xs space-y-1.5">
           <div className="flex items-center justify-between text-[#8E92A2]">
             <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Stock Units</span>
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shadow-2xs">
@@ -419,7 +419,7 @@ export default function AdminDashboardPage() {
 
         {/* Low Stock Radar or Active Banners */}
         {lowStockCount > 0 ? (
-          <div className="p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-rose-200 shadow-[0_12px_30px_-10px_rgba(244,63,94,0.06)] space-y-1.5">
+          <div className="p-4 sm:p-5 rounded-[24px] bg-white border border-rose-200 shadow-2xs space-y-1.5">
             <div className="flex items-center justify-between text-rose-600">
               <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Low Stock Alert</span>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-50 flex items-center justify-center shadow-2xs">
@@ -434,7 +434,7 @@ export default function AdminDashboardPage() {
             </span>
           </div>
         ) : (
-          <div className="p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-white/90 shadow-[0_12px_30px_-10px_rgba(12,13,17,0.03)] ring-1 ring-black/[0.03] space-y-1.5">
+          <div className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-2xs space-y-1.5">
             <div className="flex items-center justify-between text-[#8E92A2]">
               <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Active Banners</span>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-2xs">
@@ -450,7 +450,7 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* ── 3. LIVE ATELIER INVENTORY MATRIX ── */}
-      <section className="bg-white/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-white/90 shadow-[0_16px_45px_-12px_rgba(12,13,17,0.04)] ring-1 ring-black/[0.03] space-y-4 sm:space-y-6">
+      <section className="bg-white rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-black/[0.06] shadow-xs space-y-4 sm:space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-black/[0.05] pb-4">
           <div>
             <div className="flex items-center gap-2">
@@ -766,7 +766,7 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* ── 4. HERO CAROUSEL BANNER MANAGEMENT ── */}
-      <section className="bg-white/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-white/90 shadow-[0_16px_45px_-12px_rgba(12,13,17,0.04)] ring-1 ring-black/[0.03] space-y-4">
+      <section className="bg-white rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-black/[0.06] shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-black/[0.05] pb-3">
           <div>
             <h2 className="text-sm sm:text-lg font-serif font-black uppercase tracking-tight text-[#0C0D11]">
@@ -861,14 +861,14 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* ── 5. RECENT CLIENT DISPATCHES DESK ── */}
-      <section className="bg-white/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-white/90 shadow-[0_16px_45px_-12px_rgba(12,13,17,0.04)] ring-1 ring-black/[0.03] space-y-4">
+      <section className="bg-white rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-black/[0.06] shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/[0.05] pb-3">
           <div>
             <h2 className="text-sm sm:text-lg font-serif font-black uppercase tracking-tight text-[#0C0D11]">
               Recent Client Dispatches
             </h2>
             <p className="text-[10px] sm:text-xs text-[#8E92A2] font-mono">
-              Latest orders placed across the online storefront
+              Latest orders placed across the storefront and boutique counter
             </p>
           </div>
           <Link
