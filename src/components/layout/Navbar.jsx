@@ -5,9 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import WishlistDrawer from "@/components/WishlistDrawer";
 import { useCartStore } from "@/store/useCartStore";
-
-
-
 import { useWishlistStore } from "@/store/useWishlistStore";
 import {
   Search,
@@ -30,9 +27,9 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
 
   // Cart & Wishlist Store Hooks
-  const openDrawer = useCartStore((state) => state.openDrawer);
+  const openCartDrawer = useCartStore((state) => state.openDrawer);
   const cart = useCartStore((state) => state.cart || state.items || []);
-  const toggleWishlist = useWishlistStore((state) => state.toggleWishlist);
+  const openWishlist = useWishlistStore((state) => state.openWishlist || state.toggleWishlist);
   const wishlistItems = useWishlistStore((state) => state.items || []);
 
   useEffect(() => {
@@ -41,7 +38,7 @@ export default function Navbar() {
     const handleScroll = () => setIsScrolled(window.scrollY > 15);
     window.addEventListener("scroll", handleScroll);
 
-    // Read authenticated session state
+    // Read active authenticated session
     fetch("/api/auth/me")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -49,30 +46,43 @@ export default function Navbar() {
       })
       .catch(() => {});
 
-    // Sync cart quantity
-    try {
-      if (cart && cart.length > 0) {
-        const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-        setCartCount(total);
-      } else {
-        const guestCart = JSON.parse(
-          localStorage.getItem("atelier_guest_cart") || "[]"
-        );
-        const totalQty = guestCart.reduce(
-          (sum, item) => sum + (item.quantity || 1),
-          0
-        );
-        setCartCount(totalQty);
-      }
-    } catch (_) {}
-
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [pathname, cart]);
+  }, []);
+
+  // Sync cart counter
+  useEffect(() => {
+    if (cart && cart.length > 0) {
+      const total = cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+      setCartCount(total);
+    } else {
+      try {
+        const guestCart = JSON.parse(localStorage.getItem("atelier_guest_cart") || "[]");
+        const totalQty = guestCart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+        setCartCount(totalQty);
+      } catch {
+        setCartCount(0);
+      }
+    }
+  }, [cart]);
+
+  // Lock mobile body scroll when hamburger menu is active
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [mobileMenuOpen]);
 
   const navLinks = [
     { label: "Home", href: "/" },
     { label: "Catalog", href: "/shop" },
-    { label: "Collection", href: "/shop?category=women" },
+    { label: "Women", href: "/shop?category=women" },
+    { label: "Men", href: "/shop?category=men" },
+    { label: "Kids", href: "/shop?category=kids" },
     { label: "About", href: "/about" },
   ];
 
@@ -89,28 +99,28 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 px-3 sm:px-6 md:px-12 pt-3 pb-2 transition-all">
+      <header className="sticky top-0 z-40 px-2.5 sm:px-6 md:px-12 pt-2.5 sm:pt-3 pb-2 transition-all">
         <div
-          className={`max-w-7xl mx-auto rounded-[24px] sm:rounded-full transition-all duration-300 px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between border ${
+          className={`max-w-7xl mx-auto rounded-[22px] sm:rounded-full transition-all duration-300 px-3.5 sm:px-6 py-2 sm:py-3 flex items-center justify-between border ${
             isScrolled
-              ? "bg-white/90 backdrop-blur-xl border-[#E8EBF2] shadow-[0_8px_25px_rgba(16,24,40,0.06)]"
-              : "bg-white/75 backdrop-blur-md border-[#E8EBF2]/70"
+              ? "bg-white/95 backdrop-blur-xl border-[#E8EBF2] shadow-[0_8px_25px_rgba(16,24,40,0.06)]"
+              : "bg-white/80 backdrop-blur-md border-[#E8EBF2]/80"
           }`}
         >
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="w-8 h-8 rounded-full bg-[#0C0D11] text-white text-xs font-bold flex items-center justify-center shadow-xs">
+          <Link href="/" className="flex items-center gap-2 shrink-0 select-none">
+            <span className="w-8 h-8 rounded-full bg-[#0C0D11] text-white text-xs font-black flex items-center justify-center shadow-xs">
               R
             </span>
             <span className="font-extrabold tracking-tight text-sm uppercase text-[#0C0D11] whitespace-nowrap">
               ROC
-              <span className="hidden sm:inline-block font-normal text-xs text-[#8E92A2] ml-1.5 normal-case">
+              <span className="hidden lg:inline-block font-normal text-xs text-[#8E92A2] ml-1.5 normal-case">
                 Radha Outfit Collection
               </span>
             </span>
           </Link>
 
-          {/* Center Links (Desktop only) */}
+          {/* Desktop Nav Strip */}
           <nav className="hidden md:flex items-center space-x-1">
             {navLinks.map((link) => {
               const active = isActive(link.href);
@@ -118,7 +128,7 @@ export default function Navbar() {
                 <Link
                   key={link.label}
                   href={link.href}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
                     active
                       ? "bg-[#0C0D11] text-white shadow-xs"
                       : "text-[#4A4D59] hover:text-[#0C0D11] hover:bg-[#F4F5F9]"
@@ -130,15 +140,15 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Right Action Icons */}
-          <div className="flex items-center space-x-1 sm:space-x-2.5 text-[#0C0D11]">
-            {/* Search Button */}
+          {/* Action Icons */}
+          <div className="flex items-center space-x-1 sm:space-x-2 text-[#0C0D11]">
+            {/* Search */}
             <Link
               href="/shop"
               className="p-2 rounded-full bg-[#F4F5F9] hover:bg-[#E8EBF2] transition-colors"
               aria-label="Search Collection"
             >
-              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4A4D59]" />
+              <Search className="w-4 h-4 text-[#4A4D59]" />
             </Link>
 
             {/* Admin Desk Shortcut (Only rendered for Admins) */}
@@ -154,7 +164,7 @@ export default function Navbar() {
 
             {/* User Account / Profile */}
             {user ? (
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-1">
                 <Link
                   href="/account"
                   className="hidden sm:inline-block text-xs font-bold uppercase tracking-wider text-[#0C0D11] hover:text-[#3B7BF6] transition-colors px-2"
@@ -162,6 +172,7 @@ export default function Navbar() {
                   {user.name?.split(" ")[0]}
                 </Link>
                 <button
+                  type="button"
                   onClick={handleLogout}
                   className="p-2 rounded-full bg-[#F4F5F9] hover:bg-rose-50 text-[#8E92A2] hover:text-rose-600 transition-colors hidden sm:inline-block cursor-pointer"
                   title="Log out"
@@ -181,14 +192,14 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Wishlist Heart Trigger Button */}
+            {/* Wishlist Drawer Trigger */}
             <button
               type="button"
-              onClick={toggleWishlist}
+              onClick={() => openWishlist && openWishlist()}
               className="relative p-2 rounded-full bg-[#F4F5F9] hover:bg-rose-50 text-[#4A4D59] hover:text-rose-600 transition-colors cursor-pointer"
               aria-label="View Saved Garments"
             >
-              <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Heart className="w-4 h-4" />
               {mounted && wishlistItems.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-mono font-bold flex items-center justify-center shadow-xs">
                   {wishlistItems.length}
@@ -197,30 +208,32 @@ export default function Navbar() {
             </button>
 
             {/* Shopping Bag Button */}
-            <Link
-              href="/cart"
-              onClick={(e) => {
-                if (window.innerWidth >= 640 && openDrawer) {
-                  e.preventDefault();
-                  openDrawer();
+            <button
+              type="button"
+              onClick={() => {
+                if (openCartDrawer) {
+                  openCartDrawer();
+                } else {
+                  window.location.href = "/cart";
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-[#EBF1FD] text-[#3B7BF6] hover:bg-[#dfe9fb] transition-colors font-bold text-xs"
-              aria-label="Cart"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-[#EBF1FD] text-[#3B7BF6] hover:bg-[#dfe9fb] transition-colors font-bold text-xs cursor-pointer"
+              aria-label="Shopping Bag"
             >
-              <ShoppingBag className="w-3.5 h-3.5" />
+              <ShoppingBag className="w-4 h-4" />
               <span className="hidden xs:inline">Bag</span>
               {mounted && cartCount > 0 && (
                 <span className="w-4 h-4 rounded-full bg-[#3B7BF6] text-white text-[10px] flex items-center justify-center font-bold">
                   {cartCount}
                 </span>
               )}
-            </Link>
+            </button>
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile Hamburger Menu */}
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-full bg-[#F4F5F9] text-[#0C0D11] hover:bg-[#E8EBF2] transition-colors"
+              className="md:hidden p-2 rounded-full bg-[#F4F5F9] text-[#0C0D11] hover:bg-[#E8EBF2] transition-colors cursor-pointer"
               aria-label="Open Navigation Menu"
             >
               <Menu className="w-4 h-4" />
@@ -232,38 +245,38 @@ export default function Navbar() {
       {/* Slide-Over Wishlist Drawer */}
       <WishlistDrawer />
 
-      {/* Mobile Drawer (Slides in from the right) */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop Overlay */}
           <div
-            className="fixed inset-0 bg-[#0C0D11]/40 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-[#0C0D11]/50 backdrop-blur-xs transition-opacity animate-in fade-in"
             onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
           />
 
-          {/* Drawer Sheet */}
           <div className="relative w-4/5 max-w-xs bg-white h-full shadow-[0_0_50px_rgba(0,0,0,0.15)] flex flex-col p-6 z-10 animate-in slide-in-from-right duration-300">
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between pb-5 border-b border-[#E8EBF2]">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#E8EBF2]">
               <div className="flex items-center gap-2">
                 <span className="w-7 h-7 rounded-full bg-[#0C0D11] text-white text-xs font-bold flex items-center justify-center">
                   R
                 </span>
                 <span className="font-extrabold text-xs tracking-tight uppercase text-[#0C0D11]">
-                  ROC Navigation
+                  Radha Collection
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-full bg-[#F4F5F9] text-[#4A4D59] hover:text-[#0C0D11]"
-                aria-label="Close Navigation Menu"
+                className="p-1.5 rounded-full bg-[#F4F5F9] text-[#4A4D59] hover:text-[#0C0D11] cursor-pointer"
+                aria-label="Close Menu"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Navigation Links */}
-            <nav className="flex flex-col space-y-2 pt-6">
+            <nav className="flex flex-col space-y-2 pt-5 overflow-y-auto">
               {navLinks.map((link) => {
                 const active = isActive(link.href);
                 return (
@@ -285,11 +298,12 @@ export default function Navbar() {
 
               {/* Wishlist Link for Mobile */}
               <button
+                type="button"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  toggleWishlist();
+                  if (openWishlist) openWishlist();
                 }}
-                className="flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold tracking-wide text-[#4A4D59] hover:bg-[#F4F5F9] hover:text-[#0C0D11] transition-all text-left"
+                className="flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold tracking-wide text-[#4A4D59] hover:bg-[#F4F5F9] hover:text-[#0C0D11] transition-all text-left cursor-pointer"
               >
                 <span className="flex items-center gap-2">
                   <Heart className="w-3.5 h-3.5 text-rose-500" /> Saved Pieces
@@ -301,7 +315,7 @@ export default function Navbar() {
                 )}
               </button>
 
-              {/* Mobile Admin Link */}
+              {/* Admin Link for Mobile */}
               {user?.role === "admin" && (
                 <Link
                   href="/admin"
@@ -316,7 +330,7 @@ export default function Navbar() {
               )}
 
               {/* User Account / Auth Actions */}
-              <div className="pt-6 border-t border-[#E8EBF2] mt-4 flex flex-col space-y-2">
+              <div className="pt-5 border-t border-[#E8EBF2] mt-3 flex flex-col space-y-2">
                 {user ? (
                   <>
                     <Link
@@ -327,11 +341,12 @@ export default function Navbar() {
                       Account ({user.name})
                     </Link>
                     <button
+                      type="button"
                       onClick={() => {
                         setMobileMenuOpen(false);
                         handleLogout();
                       }}
-                      className="px-4 py-2 text-left text-xs font-semibold text-red-600 hover:underline cursor-pointer"
+                      className="px-4 py-2 text-left text-xs font-semibold text-rose-600 hover:underline cursor-pointer"
                     >
                       Log out
                     </button>
@@ -358,10 +373,8 @@ export default function Navbar() {
             </nav>
 
             {/* Bottom Meta */}
-            <div className="mt-auto pt-6 border-t border-[#E8EBF2] text-[10px] text-[#8E92A2] flex flex-col space-y-1">
-              <span className="font-bold text-[#0C0D11]">
-                RADHA OUTFIT COLLECTION (ROC)
-              </span>
+            <div className="mt-auto pt-5 border-t border-[#E8EBF2] text-[10px] text-[#8E92A2] flex flex-col space-y-0.5">
+              <span className="font-bold text-[#0C0D11]">RADHA OUTFIT COLLECTION</span>
               <span>© {new Date().getFullYear()} All Rights Reserved.</span>
             </div>
           </div>

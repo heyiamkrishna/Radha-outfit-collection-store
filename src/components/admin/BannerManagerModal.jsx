@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Sparkles, Plus, Loader2, X, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 
@@ -9,7 +9,7 @@ export default function BannerManagerModal({ onCreated }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState({
+  const initialForm = {
     title: "",
     subtitle: "",
     badge: "Radha Exclusive",
@@ -19,7 +19,20 @@ export default function BannerManagerModal({ onCreated }) {
     image: "",
     bgGradient: "from-[#FFF5F5] via-[#FDF2F4] to-[#FDE8EC]",
     order: 0,
-  });
+  };
+
+  const [form, setForm] = useState(initialForm);
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [open]);
 
   const gradientOptions = [
     { label: "Rose Dust", val: "from-[#FFF5F5] via-[#FDF2F4] to-[#FDE8EC]" },
@@ -44,19 +57,9 @@ export default function BannerManagerModal({ onCreated }) {
       if (!res.ok) throw new Error(data.error || "Failed to publish hero slide.");
 
       setOpen(false);
-      setForm({
-        title: "",
-        subtitle: "",
-        badge: "Radha Exclusive",
-        tagline: "Starting at ₹4,999",
-        ctaText: "Explore Piece",
-        ctaLink: "/shop",
-        image: "",
-        bgGradient: "from-[#FFF5F5] via-[#FDF2F4] to-[#FDE8EC]",
-        order: 0,
-      });
+      setForm(initialForm);
 
-      if (onCreated) onCreated(data.banner);
+      if (onCreated) onCreated(data.banner || data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -66,7 +69,6 @@ export default function BannerManagerModal({ onCreated }) {
 
   return (
     <>
-      {/* Trigger Button - Full width on mobile, inline on desktop */}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -76,7 +78,6 @@ export default function BannerManagerModal({ onCreated }) {
         <span>Add Slider Banner</span>
       </button>
 
-      {/* Modal Dialog */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-[#0C0D11]/60 backdrop-blur-md animate-in fade-in duration-200">
           <div className="relative w-full max-w-lg bg-white rounded-[32px] p-5 sm:p-8 border border-[#E8EBF2] shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
@@ -91,7 +92,7 @@ export default function BannerManagerModal({ onCreated }) {
                     New Hero Carousel Slide
                   </h3>
                   <p className="text-[11px] text-[#8E92A2] font-mono">
-                    Flipkart-style peek slider component
+                    Dynamic promotional banner showcase
                   </p>
                 </div>
               </div>
@@ -99,6 +100,7 @@ export default function BannerManagerModal({ onCreated }) {
                 type="button"
                 onClick={() => setOpen(false)}
                 className="p-1.5 rounded-full text-[#8E92A2] hover:text-[#0C0D11] hover:bg-[#F4F5F9] transition-colors cursor-pointer"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -111,7 +113,6 @@ export default function BannerManagerModal({ onCreated }) {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-              {/* Slide Headline */}
               <div>
                 <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
                   Main Headline *
@@ -126,7 +127,6 @@ export default function BannerManagerModal({ onCreated }) {
                 />
               </div>
 
-              {/* Subtitle / Subheading */}
               <div>
                 <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
                   Secondary Subtitle
@@ -140,7 +140,6 @@ export default function BannerManagerModal({ onCreated }) {
                 />
               </div>
 
-              {/* Badging and Pricing Tagline */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
@@ -168,7 +167,6 @@ export default function BannerManagerModal({ onCreated }) {
                 </div>
               </div>
 
-              {/* Garment Image URL & Preview */}
               <div className="space-y-2">
                 <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
                   Garment Visual URL *
@@ -191,6 +189,7 @@ export default function BannerManagerModal({ onCreated }) {
                         src={form.image}
                         alt="Preview"
                         fill
+                        sizes="40px"
                         className="object-cover"
                       />
                     </div>
@@ -198,7 +197,6 @@ export default function BannerManagerModal({ onCreated }) {
                 </div>
               </div>
 
-              {/* Call-to-Action Link & Text */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1">
@@ -229,7 +227,6 @@ export default function BannerManagerModal({ onCreated }) {
                 </div>
               </div>
 
-              {/* Background Color Gradient Selector */}
               <div>
                 <label className="font-bold uppercase tracking-wider text-[#0C0D11] block mb-1.5">
                   Atelier Color Palette
@@ -253,7 +250,6 @@ export default function BannerManagerModal({ onCreated }) {
                 </div>
               </div>
 
-              {/* Submit CTA */}
               <div className="pt-2">
                 <button
                   type="submit"

@@ -30,6 +30,10 @@
   }
 }
 
+/* ✅ Supported by Turbopack */
+:root {
+  --primary: #943d2c; /* or rgb(...) / hsl(...) */
+}
 
 /* Swiper Custom Capsule Pagination Dots */
 .hero-swiper .swiper-pagination {
@@ -48,3 +52,4 @@
   background: #0C0D11 !important;
   opacity: 1 !important;
 }
+

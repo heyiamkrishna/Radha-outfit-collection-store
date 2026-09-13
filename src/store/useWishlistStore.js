@@ -18,7 +18,11 @@ export const useWishlistStore = create(
   persist(
     (set, get) => ({
       items: DEFAULT_WISHLIST,
-      wishlist: DEFAULT_WISHLIST,
+
+      // Getter alias for backwards compatibility
+      get wishlist() {
+        return get().items;
+      },
 
       toggleWishlist: (product) => {
         if (!product) return;
@@ -49,7 +53,7 @@ export const useWishlistStore = create(
             },
           ];
         }
-        set({ items: updated, wishlist: updated });
+        set({ items: updated });
       },
 
       isInWishlist: (productId) => {
@@ -60,11 +64,16 @@ export const useWishlistStore = create(
         );
       },
 
-      clearWishlist: () => set({ items: [], wishlist: [] }),
+      clearWishlist: () => set({ items: [] }),
     }),
     {
       name: "radha-wishlist-storage",
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state && !state.items && state.wishlist) {
+          state.items = state.wishlist;
+        }
+      },
     }
   )
 );

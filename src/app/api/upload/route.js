@@ -1,51 +1,68 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import ImageKit from "imagekit";
 import { verifyAdmin } from "@/lib/adminAuth";
 
-
 export async function POST(req) {
+  // Check admin authorization
+  const auth = await verifyAdmin(req);
+  if (!auth.authorized) {
+    return NextResponse.json(
+      { error: "Admin privilege required to upload assets." },
+      { status: 403 }
+    );
+  }
+
   try {
-    const admin = await verifyAdmin();
-    if (!admin) {
-      return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
-    }
+    const formData = await req.formData();
+    const file = formData.get("file");
 
-    const data = await req.formData();
-    const file = data.get("file");
-
-    if (!file || typeof file === "string") {
-      return NextResponse.json({ error: "No image file provided." }, { status: 400 });
-    }
-
-    // Validate mime type
-    const validMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-    if (!validMimeTypes.includes(file.type)) {
+    if (!file) {
       return NextResponse.json(
-        { error: "Invalid file format. Please upload JPG, PNG, WEBP, or AVIF." },
+        { error: "No image file provided." },
         { status: 400 }
       );
     }
 
+    // Convert file to base64 buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Target upload folder: public/uploads/
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
+    // If ImageKit credentials exist in .env.local, upload via ImageKit
+    if (
+      process.env.IMAGEKIT_PUBLIC_KEY &&
+      process.env.IMAGEKIT_PUBLIC_KEY !== "your_public_key_here" &&
+      process.env.IMAGEKIT_PRIVATE_KEY &&
+      process.env.IMAGEKIT_PRIVATE_KEY !== "your_private_key_here"
+    ) {
+      const imagekit = new ImageKit({
+        publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+        privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+        urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+      });
 
-    // Generate unique, collision-free filename
-    const ext = path.extname(file.name) || ".jpg";
-    const uniqueName = `roc-${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
-    const filePath = path.join(uploadDir, uniqueName);
+      const uploadResponse = await imagekit.upload({
+        file: buffer,
+        fileName: `roc-${Date.now()}-${file.name.replace(/\s+/g, "-")}`,
+        folder: "/products",
+      });
 
-    await writeFile(filePath, buffer);
+      return NextResponse.json({
+        success: true,
+        url: uploadResponse.url,
+      });
+    }
 
-    const publicUrl = `/uploads/${uniqueName}`;
-
-    return NextResponse.json({ success: true, url: publicUrl });
-  } catch (error) {
-    console.error("Upload API Error:", error);
-    return NextResponse.json({ error: "Image upload failed." }, { status: 500 });
+    // Fallback if ImageKit keys are not yet configured: data URI for immediate testing
+    const base64Data = `data:${file.type};base64,${buffer.toString("base64")}`;
+    return NextResponse.json({
+      success: true,
+      url: base64Data,
+    });
+  } catch (err) {
+    console.error("Asset upload error:", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to process image upload." },
+      { status: 500 }
+    );
   }
 }

@@ -9,25 +9,39 @@ function ShopContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentDept = searchParams.get("department") || "all";
+  const currentDept = searchParams.get("department") || searchParams.get("category") || "all";
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     setLoading(true);
 
     const params = new URLSearchParams();
-    if (currentDept !== "all") params.set("department", currentDept);
+    if (currentDept !== "all") {
+      params.set("department", currentDept);
+      params.set("category", currentDept);
+    }
     if (search.trim()) params.set("search", search.trim());
     if (sort !== "newest") params.set("sort", sort);
 
     fetch(`/api/products?${params.toString()}`)
       .then((res) => (res.ok ? res.json() : { products: [] }))
-      .then((data) => setProducts(data.products || []))
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (isMounted) setProducts(data.products || []);
+      })
+      .catch(() => {
+        if (isMounted) setProducts([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [currentDept, search, sort]);
 
   const departments = [
@@ -64,6 +78,7 @@ function ShopContent() {
             />
             {search && (
               <button
+                type="button"
                 onClick={() => setSearch("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E92A2] hover:text-[#0C0D11]"
               >
@@ -92,10 +107,11 @@ function ShopContent() {
         {departments.map((dept) => (
           <button
             key={dept.value}
+            type="button"
             onClick={() =>
               router.push(dept.value === "all" ? "/shop" : `/shop?department=${dept.value}`)
             }
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               currentDept === dept.value
                 ? "bg-[#0C0D11] text-white shadow-xs"
                 : "bg-white text-[#4A4D59] hover:bg-[#F4F5F9] border border-[#E8EBF2]"

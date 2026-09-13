@@ -37,10 +37,8 @@ const OrderSchema = new mongoose.Schema(
     orderNumber: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
+      unique: true, // Automatically indexes orderNumber
     },
-    // Optional to support guest checkouts without schema validation failure
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

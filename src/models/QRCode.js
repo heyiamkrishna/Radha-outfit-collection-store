@@ -6,7 +6,11 @@ const QRCodeSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      default: () => `QR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      default: () =>
+        `QR-${Date.now().toString(36).toUpperCase()}-${Math.random()
+          .toString(36)
+          .substring(2, 6)
+          .toUpperCase()}`,
     },
     productId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -30,7 +34,6 @@ const QRCodeSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     status: {
       type: String,

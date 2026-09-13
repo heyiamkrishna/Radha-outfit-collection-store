@@ -13,23 +13,26 @@ export function generateSecureToken() {
  * Generates or regenerates an active QR code record for a specific product variant.
  */
 export async function createOrUpdateQRCode({ productId, variantId, sku, regenerate = false }) {
-  const product = await Product.findById(productId);
-  if (!product) {
+  // 1. Verify product existence via light projection
+  const productExists = await Product.exists({ _id: productId });
+  if (!productExists) {
     throw new Error(`Product not found for ID: ${productId}`);
   }
 
-  // If regenerating, mark existing active QR code as DISABLED
-  if (regenerate) {
+  const normalizedSku = sku.trim().toUpperCase();
+
+  // 2. If not regenerating, check for existing active token
+  if (!regenerate) {
+    const existingQR = await QRCode.findOne({ productId, variantId, status: "ACTIVE" }).lean();
+    if (existingQR) {
+      return existingQR;
+    }
+  } else {
+    // Disable previous active QR codes for this variant
     await QRCode.updateMany(
       { productId, variantId, status: "ACTIVE" },
       { $set: { status: "DISABLED" } }
     );
-  }
-
-  // Check if an active QR code already exists
-  let existingQR = await QRCode.findOne({ productId, variantId, status: "ACTIVE" });
-  if (existingQR && !regenerate) {
-    return existingQR;
   }
 
   const token = generateSecureToken();
@@ -39,21 +42,26 @@ export async function createOrUpdateQRCode({ productId, variantId, sku, regenera
     qrId,
     productId,
     variantId,
-    sku: sku.toUpperCase(),
+    sku: normalizedSku,
     token,
     status: "ACTIVE",
   });
 
-  // Attach token directly to variant in Product for fast lookup
-  if (product.variants && product.variants.length > 0) {
-    const variant = product.variants.find(
-      (v) => v.variantId === variantId || v.sku === sku
-    );
-    if (variant) {
-      variant.qrToken = token;
-      await product.save();
+  // 3. Update variant directly without loading/saving entire document
+  await Product.updateOne(
+    { _id: productId },
+    { $set: { "variants.$[elem].qrToken": token } },
+    {
+      arrayFilters: [
+        {
+          $or: [
+            { "elem.variantId": variantId },
+            { "elem.sku": normalizedSku }
+          ]
+        }
+      ]
     }
-  }
+  );
 
   return qrRecord;
 }

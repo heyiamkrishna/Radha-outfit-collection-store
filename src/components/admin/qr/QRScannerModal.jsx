@@ -16,20 +16,31 @@ export default function QRScannerModal({ isOpen, onClose }) {
   const readerElementId = "atelier-qr-reader";
 
   const handleResolveToken = useCallback(async (tokenString, stockAdjustment = 0) => {
+    if (!tokenString?.trim()) return;
+
     try {
       setLoading(true);
       setError("");
 
-      // Clean token if a full URL was scanned
       const cleanToken = tokenString.includes("/p/q/")
         ? tokenString.split("/p/q/")[1].split("?")[0]
         : tokenString.trim();
 
-      const res = await fetch("/api/qr/scan", {
+      // Dispatch to canonical endpoint with fallback
+      const endpoint = "/api/qr/generate/scan";
+      let res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: cleanToken, stockAdjustment }),
       });
+
+      if (res.status === 404) {
+        res = await fetch("/api/qr/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: cleanToken, stockAdjustment }),
+        });
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to decode QR tag.");
@@ -43,12 +54,16 @@ export default function QRScannerModal({ isOpen, onClose }) {
   }, []);
 
   const stopScanner = useCallback(async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
+    if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
         scannerRef.current.clear();
       } catch (err) {
-        console.error("Scanner stop error:", err);
+        console.warn("Scanner hardware release warning:", err);
+      } finally {
+        scannerRef.current = null;
       }
     }
     setCameraActive(false);
@@ -57,6 +72,9 @@ export default function QRScannerModal({ isOpen, onClose }) {
   const startScanner = useCallback(async () => {
     setError("");
     setScanResult(null);
+
+    // Stop any dangling instances first
+    await stopScanner();
 
     try {
       const html5QrCode = new Html5Qrcode(readerElementId);
@@ -74,21 +92,24 @@ export default function QRScannerModal({ isOpen, onClose }) {
         () => {}
       );
       setCameraActive(true);
-    } catch (err) {
-      setError("Camera permission denied or camera not found on device.");
+    } catch {
+      setError("Camera permission denied or camera unavailable on this device.");
       setCameraActive(false);
     }
   }, [handleResolveToken, stopScanner]);
 
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = "hidden";
       startScanner();
     } else {
+      document.body.style.overflow = "unset";
       stopScanner();
       setScanResult(null);
       setError("");
     }
     return () => {
+      document.body.style.overflow = "unset";
       stopScanner();
     };
   }, [isOpen, startScanner, stopScanner]);
@@ -114,7 +135,8 @@ export default function QRScannerModal({ isOpen, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#8E92A2] hover:text-[#0C0D11] hover:bg-[#F4F5F9] transition-colors"
+            className="p-1.5 rounded-full text-[#8E92A2] hover:text-[#0C0D11] hover:bg-[#F4F5F9] transition-colors cursor-pointer"
+            aria-label="Close Scanner"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,7 +152,7 @@ export default function QRScannerModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={startScanner}
-                className="px-4 py-1.5 rounded-full bg-white text-[#0C0D11] text-[11px] font-black uppercase"
+                className="px-4 py-1.5 rounded-full bg-white text-[#0C0D11] text-[11px] font-black uppercase cursor-pointer"
               >
                 Restart Camera
               </button>
@@ -152,9 +174,10 @@ export default function QRScannerModal({ isOpen, onClose }) {
             <div className="flex items-center gap-3">
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-white border border-[#E8EBF2] shrink-0">
                 <Image
-                  src={scanResult.product.image}
-                  alt={scanResult.product.name}
+                  src={scanResult.product?.image || "/placeholder.jpg"}
+                  alt={scanResult.product?.name || "Product"}
                   fill
+                  sizes="56px"
                   className="object-cover"
                 />
               </div>
@@ -163,10 +186,10 @@ export default function QRScannerModal({ isOpen, onClose }) {
                   <CheckCircle2 className="w-3 h-3" /> Authenticated Spec
                 </span>
                 <h4 className="text-xs font-black uppercase truncate text-[#0C0D11]">
-                  {scanResult.product.name}
+                  {scanResult.product?.name}
                 </h4>
                 <p className="text-[10px] font-mono text-[#4A4D59]">
-                  {scanResult.variant.colorName} • Size {scanResult.variant.size} • SKU: {scanResult.variant.sku}
+                  {scanResult.variant?.colorName || "Classic"} • Size {scanResult.variant?.size || "M"} • SKU: {scanResult.variant?.sku}
                 </p>
               </div>
             </div>
@@ -174,25 +197,25 @@ export default function QRScannerModal({ isOpen, onClose }) {
             <div className="flex items-center justify-between border-t border-[#E8EBF2] pt-3 text-xs font-mono">
               <span className="font-bold">Inventory Level:</span>
               <span className="font-black text-sm text-[#0C0D11]">
-                {scanResult.variant.stock} units
+                {scanResult.variant?.stock ?? 0} units
               </span>
             </div>
 
-            {/* Direct Inventory Adjustment Triggers */}
+            {/* Stock Adjustment */}
             <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
               <button
                 type="button"
                 disabled={loading}
-                onClick={() => handleResolveToken(scanResult.qr.token, 1)}
-                className="py-2 rounded-xl bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-xs font-bold flex items-center justify-center gap-1 text-emerald-600 transition-colors"
+                onClick={() => handleResolveToken(scanResult.qr?.token, 1)}
+                className="py-2 rounded-xl bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-xs font-bold flex items-center justify-center gap-1 text-emerald-600 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Stock In (+1)
               </button>
               <button
                 type="button"
-                disabled={loading || scanResult.variant.stock <= 0}
-                onClick={() => handleResolveToken(scanResult.qr.token, -1)}
-                className="py-2 rounded-xl bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-xs font-bold flex items-center justify-center gap-1 text-rose-600 transition-colors disabled:opacity-40"
+                disabled={loading || (scanResult.variant?.stock || 0) <= 0}
+                onClick={() => handleResolveToken(scanResult.qr?.token, -1)}
+                className="py-2 rounded-xl bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-xs font-bold flex items-center justify-center gap-1 text-rose-600 transition-colors disabled:opacity-40 cursor-pointer"
               >
                 <Minus className="w-3.5 h-3.5" /> Stock Out (-1)
               </button>
@@ -200,7 +223,7 @@ export default function QRScannerModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* Manual Fallback Input */}
+        {/* Manual Fallback */}
         <div className="space-y-1.5 pt-2 border-t border-[#F0F2F6]">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#8E92A2]">
             Manual Token Fallback
@@ -217,7 +240,7 @@ export default function QRScannerModal({ isOpen, onClose }) {
               type="button"
               disabled={loading || !manualToken.trim()}
               onClick={() => handleResolveToken(manualToken)}
-              className="px-4 py-2 rounded-xl bg-[#0C0D11] text-white text-xs font-bold uppercase flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-[#0C0D11] text-white text-xs font-bold uppercase flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
               <span>Find</span>

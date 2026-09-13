@@ -5,18 +5,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { X, Heart, ShoppingBag, Trash2, ArrowRight } from "lucide-react";
 import { useWishlistStore } from "@/store/useWishlistStore";
-import { useCartStore } from "@/store/useCartStore";// Connects to your existing cart store
+import { useCartStore } from "@/store/useCartStore";
 
-export default function WishlistDrawer() {
+export default function WishlistDrawer({ isOpen: propIsOpen, onClose: propOnClose }) {
   const [mounted, setMounted] = useState(false);
-  const { items, isOpen, closeWishlist, removeItem } = useWishlistStore();
-  const addToCart = useCartStore((s) => s.addToCart); // Fallback-safe cart action
+
+  const items = useWishlistStore((s) => s.items || s.wishlist || []);
+  const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
+  const storeIsOpen = useWishlistStore((s) => s.isOpen);
+  const storeClose = useWishlistStore((s) => s.closeWishlist || s.closeDrawer);
+
+  const isOpen = propIsOpen !== undefined ? propIsOpen : storeIsOpen;
+  const handleClose = propOnClose || storeClose || (() => {});
+
+  const addToCart = useCartStore((s) => s.addToCart);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Lock background scroll when drawer is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -33,10 +40,11 @@ export default function WishlistDrawer() {
   const handleMoveToCart = (item) => {
     if (addToCart) {
       addToCart({
-        _id: item._id,
+        _id: item._id || item.id,
+        id: item._id || item.id,
         name: item.name,
         price: item.salePrice || item.price,
-        image: item.images?.[0] || "",
+        image: item.image || item.images?.[0] || "/placeholder.jpg",
         size: item.sizes?.[0] || "M",
         quantity: 1,
         slug: item.slug,
@@ -44,12 +52,19 @@ export default function WishlistDrawer() {
     }
   };
 
+  const handleRemove = (item) => {
+    if (toggleWishlist) {
+      toggleWishlist(item);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
       <div
-        onClick={closeWishlist}
+        onClick={handleClose}
         className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
+        aria-hidden="true"
       />
 
       {/* Sheet Body */}
@@ -71,8 +86,10 @@ export default function WishlistDrawer() {
           </div>
 
           <button
-            onClick={closeWishlist}
-            className="p-2 rounded-full hover:bg-[#F4F5F9] text-[#0C0D11] transition-colors"
+            type="button"
+            onClick={handleClose}
+            className="p-2 rounded-full hover:bg-[#F4F5F9] text-[#0C0D11] transition-colors cursor-pointer"
+            aria-label="Close Wishlist"
           >
             <X className="w-4 h-4" />
           </button>
@@ -90,64 +107,72 @@ export default function WishlistDrawer() {
                 Bookmark garments you love by tapping the heart icon while browsing our couture collections.
               </p>
               <button
-                onClick={closeWishlist}
-                className="mt-2 px-6 py-2.5 rounded-full bg-[#0C0D11] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#3B7BF6] transition-colors"
+                type="button"
+                onClick={handleClose}
+                className="mt-2 px-6 py-2.5 rounded-full bg-[#0C0D11] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#3B7BF6] transition-colors cursor-pointer"
               >
                 Explore Wardrobe
               </button>
             </div>
           ) : (
-            items.map((item) => (
-              <div
-                key={item._id}
-                className="p-4 rounded-3xl bg-[#FAFAFC] border border-[#F0F2F6] flex gap-4 items-center justify-between group hover:border-[#CBD5E1] transition-all"
-              >
-                {/* Image & Title */}
-                <Link
-                  href={`/product/${item.slug || item._id}`}
-                  onClick={closeWishlist}
-                  className="flex items-center gap-3.5 min-w-0"
+            items.map((item) => {
+              const itemId = item._id || item.id;
+              const garmentPrice = Number(item.salePrice || item.price || 0);
+
+              return (
+                <div
+                  key={itemId}
+                  className="p-4 rounded-3xl bg-[#FAFAFC] border border-[#F0F2F6] flex gap-4 items-center justify-between group hover:border-[#CBD5E1] transition-all"
                 >
-                  <div className="relative w-16 h-20 rounded-2xl overflow-hidden bg-white border border-[#E8EBF2] shrink-0">
-                    <Image
-                      src={item.images?.[0] || "/placeholder.jpg"}
-                      alt={item.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="min-w-0 space-y-0.5">
-                    <span className="px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase bg-[#EBF1FD] text-[#3B7BF6]">
-                      {item.department}
-                    </span>
-                    <p className="text-xs font-extrabold text-[#0C0D11] truncate">{item.name}</p>
-                    <p className="text-xs font-black font-mono text-[#0C0D11]">
-                      ₹{((item.salePrice || item.price) || 0).toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                </Link>
-
-                {/* Actions */}
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item._id)}
-                    className="p-2 rounded-xl text-[#8E92A2] hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                    title="Remove from saved"
+                  {/* Image & Title */}
+                  <Link
+                    href={`/product/${item.slug || itemId}`}
+                    onClick={handleClose}
+                    className="flex items-center gap-3.5 min-w-0"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                    <div className="relative w-16 h-20 rounded-2xl overflow-hidden bg-white border border-[#E8EBF2] shrink-0">
+                      <Image
+                        src={item.image || item.images?.[0] || "/placeholder.jpg"}
+                        alt={item.name || "Garment"}
+                        fill
+                        sizes="64px"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <span className="px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase bg-[#EBF1FD] text-[#3B7BF6]">
+                        {item.category || item.department || "Haute Piece"}
+                      </span>
+                      <p className="text-xs font-extrabold text-[#0C0D11] truncate">{item.name}</p>
+                      <p className="text-xs font-black font-mono text-[#0C0D11]">
+                        ₹{garmentPrice.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                  </Link>
 
-                  <button
-                    type="button"
-                    onClick={() => handleMoveToCart(item)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0C0D11] text-white hover:bg-[#3B7BF6] text-[10px] font-bold uppercase tracking-wider transition-colors shadow-xs active:scale-95"
-                  >
-                    <ShoppingBag className="w-3 h-3" /> Move to Bag
-                  </button>
+                  {/* Actions */}
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(item)}
+                      className="p-2 rounded-xl text-[#8E92A2] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Remove from saved"
+                      aria-label="Remove from saved"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleMoveToCart(item)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0C0D11] text-white hover:bg-[#3B7BF6] text-[10px] font-bold uppercase tracking-wider transition-colors shadow-xs active:scale-95 cursor-pointer"
+                    >
+                      <ShoppingBag className="w-3 h-3" /> Move to Bag
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -156,7 +181,7 @@ export default function WishlistDrawer() {
           <div className="p-6 border-t border-[#F0F2F6] bg-white space-y-3">
             <Link
               href="/wishlist"
-              onClick={closeWishlist}
+              onClick={handleClose}
               className="w-full py-3.5 rounded-full border border-[#0C0D11] text-[#0C0D11] hover:bg-[#0C0D11] hover:text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
             >
               View Full Wishlist Gallery <ArrowRight className="w-3.5 h-3.5" />

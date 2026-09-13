@@ -4,15 +4,18 @@ import { verifyAdminSession } from "@/lib/adminAuth";
 import { createOrUpdateQRCode } from "@/lib/qr";
 
 export async function POST(req) {
-  const auth = await verifyAdminSession();
+  const auth = await verifyAdminSession(req);
   if (!auth.authorized) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error || "Forbidden: Admin privileges required" },
+      { status: auth.error?.includes("Missing") ? 401 : 403 }
+    );
   }
 
   try {
     await connectToDatabase();
     const body = await req.json();
-    const { productId, variantId, sku, regenerate = false } = body;
+    const { productId, variantId, sku, regenerate = false } = body || {};
 
     if (!productId || !variantId || !sku) {
       return NextResponse.json(
@@ -28,7 +31,10 @@ export async function POST(req) {
       regenerate: Boolean(regenerate),
     });
 
-    const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const origin =
+      req.headers.get("origin") ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      "http://localhost:3000";
     const publicUrl = `${origin}/p/q/${qrRecord.token}`;
 
     return NextResponse.json({
@@ -38,6 +44,9 @@ export async function POST(req) {
     });
   } catch (err) {
     console.error("QR Generation error:", err);
-    return NextResponse.json({ error: err.message || "Failed to generate QR code." }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || "Failed to generate QR code." },
+      { status: 500 }
+    );
   }
 }

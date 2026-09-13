@@ -6,7 +6,8 @@ import { useState, useEffect } from "react";
 
 export default function WishlistHeartButton({ product, className = "" }) {
   const [mounted, setMounted] = useState(false);
-  const toggleItem = useWishlistStore((s) => s.toggleItem);
+
+  const toggleWishlist = useWishlistStore((s) => s.toggleWishlist || s.toggleItem);
   const isInWishlist = useWishlistStore((s) => s.isInWishlist);
 
   useEffect(() => {
@@ -15,16 +16,21 @@ export default function WishlistHeartButton({ product, className = "" }) {
 
   if (!mounted || !product) return null;
 
-  const isSaved = isInWishlist(product._id || product.id);
+  const productId = product._id || product.id;
+  const isSaved = Boolean(isInWishlist && isInWishlist(productId));
+
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (toggleWishlist) {
+      toggleWishlist(product);
+    }
+  };
 
   return (
     <button
       type="button"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleItem(product);
-      }}
+      onClick={handleClick}
       aria-label={isSaved ? "Remove from wishlist" : "Add to wishlist"}
       className={`p-2.5 rounded-full backdrop-blur-md transition-all duration-300 cursor-pointer active:scale-90 ${
         isSaved

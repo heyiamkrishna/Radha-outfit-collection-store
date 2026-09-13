@@ -8,9 +8,8 @@ export async function POST(req) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { name, email, password } = body;
+    const { name, email, password } = body || {};
 
-    // 1. Validate required fields
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "Full name, email address, and password are required." },
@@ -28,8 +27,11 @@ export async function POST(req) {
       );
     }
 
-    // 2. Check if user already exists
-    const existingUser = await User.findOne({ email: normalizedEmail }).lean();
+    // Check existing account with projection for efficiency
+    const existingUser = await User.findOne({ email: normalizedEmail })
+      .select("_id")
+      .lean();
+
     if (existingUser) {
       return NextResponse.json(
         { error: "An atelier account with this email address already exists." },
@@ -37,16 +39,14 @@ export async function POST(req) {
       );
     }
 
-    // 3. Hash password securely
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // 4. Create User (Strictly force role to 'customer')
     const newUser = await User.create({
       name: trimmedName,
       email: normalizedEmail,
       password: hashedPassword,
-      role: "customer", // FORCED: Cannot be overridden by request payload
+      role: "customer", // Strict constraint: cannot be overridden by payload
     });
 
     return NextResponse.json(
@@ -65,7 +65,6 @@ export async function POST(req) {
   } catch (error) {
     console.error("User Registration Error:", error);
 
-    // Handle MongoDB duplicate key error if race conditions occur
     if (error.code === 11000) {
       return NextResponse.json(
         { error: "An account with this email already exists." },

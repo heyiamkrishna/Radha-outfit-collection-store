@@ -15,7 +15,8 @@ if (!cached) {
 }
 
 async function connectToDatabase() {
-  if (cached.conn) {
+  // If connection exists and is ready (readyState === 1), return it
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
@@ -27,16 +28,17 @@ async function connectToDatabase() {
       socketTimeoutMS: 45000,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
-      return mongooseInstance;
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((instance) => {
+      return instance;
     });
   }
 
   try {
     cached.conn = await cached.promise;
-  } catch (e) {
+  } catch (err) {
     cached.promise = null;
-    throw e;
+    cached.conn = null;
+    throw err;
   }
 
   return cached.conn;

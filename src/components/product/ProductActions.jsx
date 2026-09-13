@@ -1,8 +1,7 @@
 "use client";
 
-// import { useState } from "react";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
@@ -22,9 +21,8 @@ import {
 
 export default function ProductActions({ product }) {
   const router = useRouter();
-
-
   const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -38,29 +36,27 @@ export default function ProductActions({ product }) {
   );
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
-  const [activeTab, setActiveTab] = useState(null); // Accordions
+  const [activeTab, setActiveTab] = useState(null);
 
   // Cart & Wishlist stores
-  const addToCart = useCartStore((s) => s.addToCart || s.addItem);
+  const addToCart = useCartStore((s) => s.addToCart);
   const openDrawer = useCartStore((s) => s.openDrawer);
 
-  const { isInWishlist, toggleWishlist, addToWishlist, removeFromWishlist } =
-    useWishlistStore();
+  const isInWishlist = useWishlistStore((s) => s.isInWishlist);
+  const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
 
- const isWishlisted = mounted && isInWishlist
-    ? isInWishlist(product?._id)
-    : false;
+  const isWishlisted = Boolean(mounted && isInWishlist && isInWishlist(product?._id));
 
-  const activePrice = product?.salePrice || product?.price || 0;
-  const originalPrice = product?.price || 0;
-  const isDiscounted = Boolean(
-    product?.salePrice && product?.salePrice < product?.price
-  );
-  const discountPercent = isDiscounted
-    ? Math.round(((originalPrice - activePrice) / originalPrice) * 100)
-    : 0;
+  const activePrice = Number(product?.salePrice || product?.price || 0);
+  const originalPrice = Number(product?.price || 0);
+  const isDiscounted = Boolean(product?.salePrice && product?.salePrice < product?.price);
 
-  // Handle Quantity
+  const discountPercent = useMemo(() => {
+    return isDiscounted && originalPrice > 0
+      ? Math.round(((originalPrice - activePrice) / originalPrice) * 100)
+      : 0;
+  }, [isDiscounted, originalPrice, activePrice]);
+
   const handleDecrement = () => {
     if (quantity > 1) setQuantity((prev) => prev - 1);
   };
@@ -69,20 +65,22 @@ export default function ProductActions({ product }) {
     if (quantity < 10) setQuantity((prev) => prev + 1);
   };
 
-  // Add to Bag
   const handleAddToCart = () => {
-  if (addToCart) {
-    addToCart({
-      product: product._id, // Explicitly pass product ObjectId
-      _id: product._id,
-      id: product._id,
-      name: product.name,
-      price: activePrice,
-      image: selectedImage || product?.images?.[0] || "/placeholder.jpg",
-      size: selectedSize,
-      quantity: quantity,
-      slug: product.slug,
-    });
+    if (addToCart && product) {
+      addToCart(
+        {
+          _id: product._id,
+          id: product._id,
+          name: product.name,
+          price: activePrice,
+          salePrice: product.salePrice,
+          images: product.images,
+          image: selectedImage || product?.images?.[0] || "/placeholder.jpg",
+          slug: product.slug,
+        },
+        selectedSize,
+        quantity
+      );
 
       setIsAdded(true);
       setTimeout(() => setIsAdded(false), 1600);
@@ -93,52 +91,49 @@ export default function ProductActions({ product }) {
     }
   };
 
-  // Buy Now (Instant Checkout)
   const handleBuyNow = () => {
-    if (addToCart) {
-      addToCart({
-        _id: product._id,
-        id: product._id,
-        name: product.name,
-        price: activePrice,
-        image: selectedImage,
-        size: selectedSize,
-        quantity: quantity,
-        slug: product.slug,
-      });
+    if (addToCart && product) {
+      addToCart(
+        {
+          _id: product._id,
+          id: product._id,
+          name: product.name,
+          price: activePrice,
+          salePrice: product.salePrice,
+          images: product.images,
+          image: selectedImage || product?.images?.[0] || "/placeholder.jpg",
+          slug: product.slug,
+        },
+        selectedSize,
+        quantity
+      );
     }
     router.push("/checkout");
   };
 
   const handleWishlistToggle = () => {
-    if (toggleWishlist) {
+    if (toggleWishlist && product) {
       toggleWishlist(product);
-    } else if (isWishlisted && removeFromWishlist) {
-      removeFromWishlist(product._id);
-    } else if (addToWishlist) {
-      addToWishlist(product);
     }
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
-      
       {/* ── LEFT COLUMN: High-Fashion Gallery Stage ── */}
       <div className="lg:col-span-7 space-y-4">
-        {/* Main Stage Viewport */}
         <div className="relative aspect-[3/4] w-full rounded-[32px] overflow-hidden bg-white border border-[#E8EBF2] shadow-sm group">
           <Image
             src={selectedImage}
             alt={product?.name || "Garment Silhouette"}
             fill
             priority
+            sizes="(max-width: 1024px) 100vw, 58vw"
             className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
           />
 
-          {/* Department & Stock Pill */}
           <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
             <span className="px-3.5 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-[#0C0D11]/90 backdrop-blur-md text-white shadow-sm">
-              {product?.department || "Ready-to-Wear"}
+              {product?.category || product?.department || "Ready-to-Wear"}
             </span>
             {isDiscounted && (
               <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-sm">
@@ -147,7 +142,6 @@ export default function ProductActions({ product }) {
             )}
           </div>
 
-          {/* Wishlist Heart Action */}
           <button
             type="button"
             onClick={handleWishlistToggle}
@@ -162,7 +156,7 @@ export default function ProductActions({ product }) {
           </button>
         </div>
 
-        {/* Thumbnail Selector Strip */}
+        {/* Thumbnails */}
         {product?.images && product.images.length > 1 && (
           <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
             {product.images.map((img, idx) => (
@@ -180,6 +174,7 @@ export default function ProductActions({ product }) {
                   src={img}
                   alt={`Garment Angle ${idx + 1}`}
                   fill
+                  sizes="96px"
                   className="object-cover"
                 />
               </button>
@@ -188,10 +183,8 @@ export default function ProductActions({ product }) {
         )}
       </div>
 
-      {/* ── RIGHT COLUMN: Atelier Spec Dossier & Buying Actions ── */}
+      {/* ── RIGHT COLUMN: Spec Dossier & Actions ── */}
       <div className="lg:col-span-5 bg-white rounded-[36px] p-6 sm:p-10 border border-[#E8EBF2] shadow-sm space-y-7">
-        
-        {/* Header, Name & Pricing Block */}
         <div className="space-y-3 pb-6 border-b border-[#F0F2F6]">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-extrabold uppercase tracking-widest text-[#3B7BF6]">
@@ -206,7 +199,6 @@ export default function ProductActions({ product }) {
             {product?.name}
           </h1>
 
-          {/* Pricing Row */}
           <div className="flex items-baseline gap-3 pt-1">
             <span className="text-3xl font-black font-mono text-[#0C0D11]">
               ₹{activePrice.toLocaleString("en-IN")}
@@ -229,13 +221,9 @@ export default function ProductActions({ product }) {
               <span className="font-extrabold uppercase tracking-wider text-[#0C0D11]">
                 Select Atelier Size
               </span>
-              <button
-                type="button"
-                onClick={() => alert("Standard Indian / International fitting. For tailored bespoke sizing, consult your atelier assistant.")}
-                className="text-[11px] text-[#3B7BF6] hover:underline font-bold"
-              >
-                Size Guide
-              </button>
+              <span className="text-[11px] text-[#3B7BF6] font-bold">
+                Standard Fit
+              </span>
             </div>
             <div className="flex flex-wrap gap-2.5">
               {product.sizes.map((size) => (
@@ -267,6 +255,7 @@ export default function ProductActions({ product }) {
               onClick={handleDecrement}
               disabled={quantity <= 1}
               className="w-9 h-9 rounded-xl flex items-center justify-center text-[#0C0D11] hover:bg-white disabled:opacity-30 transition-all cursor-pointer"
+              aria-label="Decrease quantity"
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
@@ -278,6 +267,7 @@ export default function ProductActions({ product }) {
               onClick={handleIncrement}
               disabled={quantity >= 10}
               className="w-9 h-9 rounded-xl flex items-center justify-center text-[#0C0D11] hover:bg-white disabled:opacity-30 transition-all cursor-pointer"
+              aria-label="Increase quantity"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -295,9 +285,8 @@ export default function ProductActions({ product }) {
           </p>
         </div>
 
-        {/* ── ACTION BUTTONS: Add To Bag & Buy Now ── */}
+        {/* Action Buttons */}
         <div className="space-y-3 pt-2">
-          {/* 1. Add to Shopping Bag */}
           <button
             type="button"
             onClick={handleAddToCart}
@@ -318,7 +307,6 @@ export default function ProductActions({ product }) {
             )}
           </button>
 
-          {/* 2. Buy Now (Instant Checkout) */}
           <button
             type="button"
             onClick={handleBuyNow}
@@ -328,10 +316,8 @@ export default function ProductActions({ product }) {
           </button>
         </div>
 
-        {/* Atelier Accordion Info Drawers */}
+        {/* Accordions */}
         <div className="border-t border-[#F0F2F6] pt-4 divide-y divide-[#F0F2F6] text-xs">
-          
-          {/* Shipping & Delivery Drawer */}
           <div className="py-3">
             <button
               type="button"
@@ -349,12 +335,11 @@ export default function ProductActions({ product }) {
             </button>
             {activeTab === "shipping" && (
               <p className="pt-2.5 text-[#8E92A2] leading-relaxed text-[11px]">
-                Dispatched in bespoke packaging. Express courier delivery across India within 3-5 business days. Free shipping on all prepaid & COD orders.
+                Dispatched in bespoke packaging. Express courier delivery across India within 3-5 business days. Complimentary delivery on qualifying orders.
               </p>
             )}
           </div>
 
-          {/* Authenticity Drawer */}
           <div className="py-3">
             <button
               type="button"
@@ -377,7 +362,6 @@ export default function ProductActions({ product }) {
             )}
           </div>
 
-          {/* Exchanges Drawer */}
           <div className="py-3">
             <button
               type="button"
@@ -399,11 +383,8 @@ export default function ProductActions({ product }) {
               </p>
             )}
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

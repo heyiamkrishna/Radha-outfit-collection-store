@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import Product from "@/models/Product";
 
-// Curated demo catalog fallbacks so initial links never break
 const DEMO_FALLBACKS = {
   "pleated-linen-trouser": {
     _id: "demo-linen-1",
@@ -26,7 +25,8 @@ const DEMO_FALLBACKS = {
 
 export async function GET(request, { params }) {
   try {
-    const { slug } = await params;
+    const resolvedParams = await params;
+    const slug = resolvedParams?.slug;
 
     if (!slug || slug === "undefined") {
       return NextResponse.json(
@@ -37,15 +37,17 @@ export async function GET(request, { params }) {
 
     await connectToDatabase();
 
-    // 1. Find by slug
-    let product = await Product.findOne({ slug }).lean();
+    // 1. Search by slug (exact and case-insensitive)
+    let product = await Product.findOne({
+      slug: { $regex: new RegExp(`^${slug}$`, "i") },
+    }).lean();
 
-    // 2. Find by MongoDB ObjectId if slug happens to be an ID
+    // 2. Search by MongoDB ObjectId if slug is a 24-char hex ID
     if (!product && mongoose.Types.ObjectId.isValid(slug)) {
       product = await Product.findById(slug).lean();
     }
 
-    // 3. Find by matching name conversion (e.g. "pleated-linen-trouser" -> "pleated linen trouser")
+    // 3. Match by name if slug converted spaces (e.g., "velvet-sherwani" -> "velvet sherwani")
     if (!product) {
       const nameGuess = slug.replace(/-/g, " ");
       product = await Product.findOne({
@@ -53,7 +55,7 @@ export async function GET(request, { params }) {
       }).lean();
     }
 
-    // 4. If still not found, check demo fallbacks
+    // 4. Check curated demo fallbacks
     if (!product && DEMO_FALLBACKS[slug]) {
       product = DEMO_FALLBACKS[slug];
     }
@@ -67,7 +69,10 @@ export async function GET(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      product: JSON.parse(JSON.stringify(product)),
+      product: {
+        ...product,
+        _id: product._id.toString(),
+      },
     });
   } catch (err) {
     console.error("API /api/products/[slug] Error:", err);

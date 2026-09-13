@@ -11,33 +11,34 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 export default function HeroSlider({ banners = [] }) {
-  // Ensure enough slides for Swiper loop without triggering extra renders
+  // Pad the slides list so Swiper loop always has sufficient elements
   const displaySlides = useMemo(() => {
     if (!banners || banners.length === 0) return [];
+    // If only 1 slide exists, loop should be disabled
     if (banners.length === 1) return banners;
-    if (banners.length < 5) {
-      return [...banners, ...banners, ...banners];
-    }
+    // For 2-5 slides, duplicate so Swiper loop has >= 6 slides to avoid track warnings
+    if (banners.length === 2) return [...banners, ...banners, ...banners];
+    if (banners.length < 6) return [...banners, ...banners];
     return banners;
   }, [banners]);
+
+  // Only enable loop and autoplay when there are at least 2 distinct banners
+  const hasMultipleBanners = (banners?.length || 0) > 1;
 
   if (!displaySlides || displaySlides.length === 0) {
     return null;
   }
-
-  const canLoop = displaySlides.length >= 3;
 
   return (
     <section className="w-full max-w-[1440px] mx-auto pt-2 pb-8 sm:pb-12 overflow-hidden select-none">
       <Swiper
         modules={[Autoplay, Pagination]}
         spaceBetween={14}
-        slidesPerView={1.08}
-        centeredSlides={true}
-        loop={canLoop}
-        loopAdditionalSlides={2}
+        slidesPerView={1.06}
+        centeredSlides={hasMultipleBanners}
+        loop={hasMultipleBanners}
         autoplay={
-          canLoop
+          hasMultipleBanners
             ? {
                 delay: 4500,
                 disableOnInteraction: false,
@@ -68,7 +69,10 @@ export default function HeroSlider({ banners = [] }) {
         className="hero-swiper !pb-10 !px-3 sm:!px-6"
       >
         {displaySlides.map((item, index) => (
-          <SwiperSlide key={`${item._id || "banner"}-${index}`} className="transition-transform duration-500">
+          <SwiperSlide
+            key={`${item._id || "banner"}-${index}`}
+            className="transition-transform duration-500"
+          >
             {({ isActive }) => (
               <div
                 className={`relative w-full aspect-[2.3/1] min-h-[210px] sm:min-h-[290px] md:min-h-[350px] lg:min-h-[380px] rounded-[26px] sm:rounded-[36px] overflow-hidden border transition-all duration-500 ${

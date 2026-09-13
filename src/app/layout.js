@@ -12,18 +12,30 @@ const plusJakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#0C0D11",
+};
+
 export const metadata = {
   title: {
-    default: "Radha Outfit Collection (ROC) — Contemporary Wardrobe",
-    template: "%s | ROC",
+    default: "Radha Outfit Collection | Haute Couture & Ready-to-Wear",
+    template: "%s | Radha Outfit Collection",
   },
-  description: "Minimalist silhouettes meticulously crafted for modern daily life.",
+  description: "Exclusive handcrafted silhouettes, luxury wedding couture, and bespoke modern essentials.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${plusJakarta.variable} scroll-smooth`}>
-      <body className="font-sans flex flex-col min-h-screen bg-[var(--bg-primary)] text-[var(--text-heading)] antialiased selection:bg-[var(--bg-dark)] selection:text-white">
+      <body className="font-sans flex flex-col min-h-screen bg-[#FAFAFC] text-[#0C0D11] antialiased selection:bg-[#0C0D11] selection:text-white">
         <LuxuryPreloader />
         <Navbar />
         <main className="flex-grow">{children}</main>

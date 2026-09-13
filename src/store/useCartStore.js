@@ -5,27 +5,49 @@ export const useCartStore = create(
   persist(
     (set, get) => ({
       cart: [],
-      items: [], // compatibility fallback
       isDrawerOpen: false,
+
+      // Getter alias for backwards compatibility with previous components
+      get items() {
+        return get().cart || [];
+      },
 
       // Drawer Actions
       openDrawer: () => set({ isDrawerOpen: true }),
       closeDrawer: () => set({ isDrawerOpen: false }),
       toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
 
-      // Cart Actions
+      // Computed Calculation Getters
+      getTotalItems: () => {
+        const list = get().cart || [];
+        return list.reduce((total, item) => total + (Number(item.quantity) || 1), 0);
+      },
+
+      getSubtotal: () => {
+        const list = get().cart || [];
+        return list.reduce(
+          (total, item) => total + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+          0
+        );
+      },
+
+      // Cart Mutation Actions
       addToCart: (product, size = "M", quantity = 1) => {
         set((state) => {
-          const list = state.cart || state.items || [];
-          const pId = (product._id || product.id).toString();
-          const existing = list.find((i) => (i.id || i._id).toString() === pId && i.size === size);
+          const list = state.cart || [];
+          const rawId = product._id || product.id || product.product;
+          const pId = String(rawId);
+
+          const existingIndex = list.findIndex(
+            (i) => String(i.id || i._id || i.product) === pId && i.size === size
+          );
 
           let updated;
-          if (existing) {
-            updated = list.map((i) =>
-              (i.id || i._id).toString() === pId && i.size === size
-                ? { ...i, quantity: i.quantity + quantity }
-                : i
+          if (existingIndex > -1) {
+            updated = list.map((item, idx) =>
+              idx === existingIndex
+                ? { ...item, quantity: item.quantity + Number(quantity) }
+                : item
             );
           } else {
             updated = [
@@ -33,37 +55,61 @@ export const useCartStore = create(
               {
                 id: pId,
                 _id: pId,
+                product: pId,
                 name: product.name,
                 price: Number(product.salePrice || product.price || 0),
-                image: product.images?.[0] || product.image || "/placeholder.jpg",
+                image: product.image || product.images?.[0] || "/placeholder.jpg",
                 size,
-                quantity,
-                slug: product.slug,
+                quantity: Number(quantity) || 1,
+                slug: product.slug || "",
               },
             ];
           }
-          return { cart: updated, items: updated, isDrawerOpen: true };
+
+          return { cart: updated, isDrawerOpen: true };
         });
       },
 
       removeFromCart: (id, size) => {
         set((state) => {
-          const list = state.cart || state.items || [];
+          const list = state.cart || [];
+          const targetId = String(id);
           const updated = list.filter(
-            (i) => !((i.id || i._id).toString() === id.toString() && i.size === size)
+            (i) => !(String(i.id || i._id || i.product) === targetId && i.size === size)
           );
-          return { cart: updated, items: updated };
+          return { cart: updated };
         });
       },
 
-      clearCart: () => set({ cart: [], items: [] }),
+      updateQuantity: (id, size, delta) => {
+        set((state) => {
+          const list = state.cart || [];
+          const targetId = String(id);
+          const updated = list
+            .map((item) => {
+              if (String(item.id || item._id || item.product) === targetId && item.size === size) {
+                const newQty = item.quantity + delta;
+                return newQty > 0 ? { ...item, quantity: newQty } : null;
+              }
+              return item;
+            })
+            .filter(Boolean);
+          return { cart: updated };
+        });
+      },
+
+      clearCart: () => set({ cart: [] }),
     }),
     {
       name: "radha-cart-storage",
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state && !state.cart && state.items) {
+          state.cart = state.items;
+        }
+      },
     }
   )
 );
 
-// Support both default and named imports
 export default useCartStore;
