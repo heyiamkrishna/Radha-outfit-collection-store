@@ -4,12 +4,12 @@ import bcrypt from "bcryptjs";
 import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 
-const JWT_SECRET_STRING =
+const ATELIER_JWT_SECRET =
   process.env.JWT_SECRET ||
   process.env.AUTH_SECRET ||
-  "atelier_super_secret_jwt_key_2026_must_be_32_chars";
+  "local_development_secret_key_atelier_2026";
 
-const SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+const SECRET = new TextEncoder().encode(ATELIER_JWT_SECRET);
 
 export async function POST(req) {
   try {
@@ -26,7 +26,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // Sign JWT using the standard Edge secret
     const token = await new SignJWT({
       userId: user._id.toString(),
       id: user._id.toString(),
@@ -51,13 +50,12 @@ export async function POST(req) {
       },
     });
 
-    // SET COOKIE - Essential flags for Vercel deployment:
     response.cookies.set("roc_token", token, {
       httpOnly: true,
-      secure: isProduction, // true on Vercel HTTPS, false on local HTTP
+      secure: isProduction,
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
