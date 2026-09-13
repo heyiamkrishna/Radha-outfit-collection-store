@@ -20,18 +20,18 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: {
-    default: "Radha Outfit Collection | Haute Couture & Ready-to-Wear",
-    template: "%s | Radha Outfit Collection",
-  },
-  description: "Exclusive handcrafted silhouettes, luxury wedding couture, and bespoke modern essentials.",
+  title: "Radha Outfit Collection | Contemporary D2C Atelier",
+  description: "Curated contemporary couture and tailored luxury silhouettes.",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: [
+      { url: "/icon.png" },
+      { url: "/favicon.ico" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png" },
+    ],
   },
 };
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${plusJakarta.variable} scroll-smooth`}>
