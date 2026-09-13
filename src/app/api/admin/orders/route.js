@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Order from "@/models/Order";
 import User from "@/models/User"; // Ensures User schema is registered for population
-import { verifyAdmin } from "@/lib/autAdmin";
+import { verifyAdmin } from "@/lib/adminAuth";
 
 export async function GET(req) {
   const auth = await verifyAdmin(req);

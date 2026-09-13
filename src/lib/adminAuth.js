@@ -6,7 +6,6 @@ const PRIMARY_SECRET =
   process.env.AUTH_SECRET ||
   "atelier_super_secret_jwt_key_2026_must_be_32_chars";
 
-// Fallbacks to eliminate signature failures caused by variable mismatches
 const FALLBACK_SECRETS = [
   PRIMARY_SECRET,
   "local_development_secret_key_atelier_2026",
@@ -16,9 +15,6 @@ const FALLBACK_SECRETS = [
 
 const COOKIE_NAMES = ["roc_token", "token", "admin_token", "auth_token", "atelier_session"];
 
-/**
- * Verifies JWT token against multiple candidate keys to avoid deployment signature mismatches
- */
 async function verifyWithCandidateSecrets(token) {
   let lastError = null;
   for (const secretStr of FALLBACK_SECRETS) {
@@ -33,13 +29,6 @@ async function verifyWithCandidateSecrets(token) {
   return { payload: null, error: lastError };
 }
 
-/**
- * Centralized admin authentication verifier.
- * Checks request authorization headers and HTTP-only session cookies.
- *
- * @param {Request} [req] - Optional incoming NextRequest or Request object
- * @returns {Promise<{ authorized: boolean, user?: object, error?: string }>}
- */
 export async function verifyAdmin(req) {
   try {
     let token = null;
@@ -51,7 +40,7 @@ export async function verifyAdmin(req) {
         token = authHeader.split(" ")[1];
       }
 
-      // If token not in Bearer, check Cookie header in Request directly
+      // If token not in Bearer, check Cookie header in Request
       if (!token) {
         const rawCookie = req.headers.get("cookie") || "";
         for (const name of COOKIE_NAMES) {
@@ -64,7 +53,7 @@ export async function verifyAdmin(req) {
       }
     }
 
-    // 2. Check Next.js server cookie store if not yet found
+    // 2. Check Next.js server cookie store
     if (!token) {
       const cookieStore = await cookies();
       for (const name of COOKIE_NAMES) {
@@ -80,7 +69,7 @@ export async function verifyAdmin(req) {
       return { authorized: false, error: "Missing authentication token" };
     }
 
-    // 3. Verify signature with candidate keys
+    // 3. Verify signature
     const { payload, error } = await verifyWithCandidateSecrets(token);
     if (!payload) {
       return { authorized: false, error: error?.message || "Signature verification failed" };

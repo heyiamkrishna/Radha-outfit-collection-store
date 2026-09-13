@@ -16,17 +16,28 @@ const COOKIE_NAMES = ["roc_token", "token", "admin_token", "auth_token", "atelie
 
 export async function GET(req) {
   try {
-    const cookieStore = await cookies();
     let token = null;
 
-    // 1. Check Bearer Header if present
+    // 1. Check Bearer Authorization header
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.split(" ")[1];
     }
 
-    // 2. Check Candidate Cookies
+    // 2. Check Request Cookies directly
+    if (!token && req.cookies) {
+      for (const name of COOKIE_NAMES) {
+        const val = req.cookies.get(name)?.value;
+        if (val) {
+          token = val;
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback to Next.js cookies() helper
     if (!token) {
+      const cookieStore = await cookies();
       for (const name of COOKIE_NAMES) {
         const val = cookieStore.get(name)?.value;
         if (val) {
@@ -40,7 +51,7 @@ export async function GET(req) {
       return NextResponse.json({ user: null, error: "No session found" }, { status: 401 });
     }
 
-    // 3. Verify against candidate secrets
+    // 4. Verify against candidate secrets to avoid deployment mismatches
     let payload = null;
     for (const secretStr of CANDIDATE_SECRETS) {
       try {
@@ -48,8 +59,8 @@ export async function GET(req) {
         const res = await jwtVerify(token, secret);
         payload = res.payload;
         break;
-      } catch (err) {
-        // try next secret
+      } catch {
+        // Continue to test candidate secrets
       }
     }
 
