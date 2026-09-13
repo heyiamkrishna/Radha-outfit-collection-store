@@ -8,14 +8,21 @@ export default function LuxuryPreloader() {
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    // Elegant duration tailored for initial assets and hydration
+    let removeTimer;
+
+    // Trigger smooth fade out at 950ms
     const timer = setTimeout(() => {
       setFading(true);
-      const removeTimer = setTimeout(() => setMounted(false), 750);
-      return () => clearTimeout(removeTimer);
+      // Unmount from DOM after transition completes (750ms later)
+      removeTimer = setTimeout(() => {
+        setMounted(false);
+      }, 750);
     }, 950);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (removeTimer) clearTimeout(removeTimer);
+    };
   }, []);
 
   if (!mounted) return null;
@@ -37,7 +44,7 @@ export default function LuxuryPreloader() {
         
         {/* Monogram Crest with Orbital Glow Ring */}
         <div className="relative flex items-center justify-center">
-          {/* Pulsing Orbital Ring */}
+          {/* Pulsing Orbital Rings */}
           <div className="absolute -inset-2.5 rounded-[26px] sm:rounded-[30px] border border-[#0C0D11]/10 animate-[spin_8s_linear_infinite]" />
           <div className="absolute -inset-1 rounded-[22px] sm:rounded-[26px] border border-dashed border-[#3B7BF6]/30 animate-[spin_12s_linear_infinite_reverse]" />
 
@@ -72,20 +79,9 @@ export default function LuxuryPreloader() {
 
         {/* Shimmering Progress Bar */}
         <div className="w-32 sm:w-44 h-1 bg-[#E8EBF2] rounded-full overflow-hidden relative">
-          <div className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#0C0D11] to-[#3B7BF6] rounded-full animate-[progressSweep_1.4s_infinite_cubic-bezier(0.4,0,0.2,1)]" />
+          <div className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#0C0D11] to-[#3B7BF6] rounded-full animate-progress-sweep" />
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes progressSweep {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(260%);
-          }
-        }
-      `}</style>
     </div>
   );
 }

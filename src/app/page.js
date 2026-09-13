@@ -7,7 +7,6 @@ import Product from "@/models/Product";
 import HeroSlider from "@/components/home/HeroSlider";
 import CategoryShowcase from "@/components/home/CategoryShowcase";
 
-// 1. Server-side Promotional Banners Query
 async function getBanners() {
   try {
     await connectToDatabase();
@@ -19,7 +18,6 @@ async function getBanners() {
       return JSON.parse(JSON.stringify(customBanners));
     }
 
-    // Dynamic fallback to latest products if no custom banners are published
     const latestProducts = await Product.find({ inStock: { $ne: false } })
       .sort({ createdAt: -1 })
       .limit(6)
@@ -47,7 +45,6 @@ async function getBanners() {
   }
 }
 
-// 2. Server-side Latest Releases Query
 async function getFeaturedProducts() {
   try {
     await connectToDatabase();
@@ -63,7 +60,6 @@ async function getFeaturedProducts() {
   }
 }
 
-// 3. Server-side Query by Category (Men, Women, Kids)
 async function getProductsByCategory(categoryName) {
   try {
     await connectToDatabase();
@@ -109,69 +105,75 @@ export default async function HomePage() {
     ]);
 
   return (
-    <main className="min-h-screen bg-[#F8F9FC] text-[#0C0D11] pt-24 sm:pt-28 pb-24 selection:bg-[#0C0D11] selection:text-white">
-      {/* 1. Flipkart-Style Swiper Peek Slider */}
-      <HeroSlider banners={banners} />
+    <main className="relative min-h-screen bg-[#F8F9FC] text-[#0C0D11] pt-16 sm:pt-24 pb-20 sm:pb-28 selection:bg-[#0C0D11] selection:text-white overflow-x-hidden">
+      
+      {/* Ambient background bloom */}
+      <div className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 w-[320px] sm:w-[700px] h-[250px] bg-gradient-to-b from-blue-100/30 via-rose-50/15 to-transparent blur-3xl -z-10" />
 
-      {/* 2. Latest Releases Showcase Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 pt-6 sm:pt-10 space-y-8">
-        <div className="flex items-end justify-between border-b border-[#E8EBF2] pb-5">
+      {/* 1. Hero Swiper */}
+      <div className="relative">
+        <HeroSlider banners={banners} />
+      </div>
+
+      {/* 2. Latest Releases Grid */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 md:px-12 pt-6 sm:pt-10 space-y-4 sm:space-y-6">
+        <div className="flex items-end justify-between border-b border-black/[0.06] pb-3 sm:pb-4">
           <div className="space-y-1">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-widest text-[#3B7BF6]">
-              <Sparkles className="w-3 h-3" /> Selected Curations
+            <span className="inline-flex items-center gap-1 text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-wider text-[#3B7BF6]">
+              <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Selected Curations
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black font-serif uppercase tracking-tight text-[#0C0D11]">
+            <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-black font-serif uppercase tracking-tight text-[#0C0D11]">
               Latest Releases
             </h2>
           </div>
           <Link
             href="/shop"
-            className="group inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#0C0D11] hover:text-[#3B7BF6] transition-colors"
+            className="group inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#0C0D11] hover:text-[#3B7BF6] transition-colors pb-0.5"
           >
             <span>Explore All</span>
-            <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         </div>
 
         {latestProducts.length === 0 ? (
-          <div className="py-16 text-center rounded-[32px] bg-white/60 border border-dashed border-[#CBD5E1]">
+          <div className="py-14 text-center rounded-[24px] bg-white/60 border border-dashed border-[#CBD5E1]">
             <p className="text-xs font-mono uppercase tracking-wider text-[#8E92A2]">
               No garments cataloged yet.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 xs:gap-3.5 sm:gap-5 md:gap-6">
             {latestProducts.map((item) => (
               <Link
                 key={item._id}
                 href={`/product/${item.slug || item._id}`}
-                className="group relative bg-white/80 backdrop-blur-xl rounded-[28px] p-3.5 border border-white/90 shadow-[0_8px_30px_rgba(12,13,17,0.03)] hover:shadow-[0_16px_40px_rgba(12,13,17,0.08)] transition-all duration-300 flex flex-col justify-between"
+                className="group relative bg-white/90 backdrop-blur-md rounded-[18px] xs:rounded-[22px] sm:rounded-[26px] p-2.5 xs:p-3 sm:p-3.5 border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-0.5 flex flex-col justify-between"
               >
-                <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-[#F4F5F9] mb-3">
+                <div className="relative aspect-[3/4] w-full rounded-[14px] xs:rounded-[18px] sm:rounded-[20px] overflow-hidden bg-[#F4F5F9] mb-2 sm:mb-3">
                   <Image
                     src={item.images?.[0] || "/placeholder.jpg"}
                     alt={item.name}
                     fill
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
                   />
                   {item.category && (
-                    <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md border border-white/80 text-[9px] font-mono font-bold uppercase tracking-wider text-[#0C0D11] shadow-2xs">
+                    <span className="absolute top-2 left-2 px-1.5 sm:px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-xs text-[7px] sm:text-[8px] font-mono font-bold uppercase tracking-wider text-[#0C0D11]">
                       {item.category}
                     </span>
                   )}
                 </div>
 
-                <div className="space-y-1 px-1 pb-1">
-                  <h3 className="text-xs font-extrabold uppercase tracking-tight text-[#0C0D11] truncate">
+                <div className="space-y-0.5 sm:space-y-1 px-1 pb-0.5">
+                  <h3 className="text-[11px] sm:text-xs font-extrabold uppercase tracking-tight text-[#0C0D11] truncate group-hover:text-[#3B7BF6] transition-colors">
                     {item.name}
                   </h3>
-                  <div className="flex items-baseline justify-between pt-1 font-mono">
-                    <span className="text-xs font-black text-[#0C0D11]">
+                  <div className="flex items-baseline justify-between pt-0.5 font-mono">
+                    <span className="text-[11px] sm:text-xs font-black text-[#0C0D11]">
                       ₹{(item.salePrice || item.price || 0).toLocaleString("en-IN")}
                     </span>
                     {item.salePrice && item.price > item.salePrice && (
-                      <span className="text-[10px] text-[#8E92A2] line-through">
+                      <span className="text-[9px] sm:text-[10px] text-[#8E92A2] line-through">
                         ₹{item.price.toLocaleString("en-IN")}
                       </span>
                     )}
@@ -183,11 +185,11 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 3. Reusable Category Sections: Men, Women & Kids */}
-      <div className="space-y-4 pt-6">
+      {/* 3. Category Showcases */}
+      <div className="space-y-4 sm:space-y-6 pt-6 sm:pt-10">
         <CategoryShowcase
           title="Men's Wardrobe"
-          subtitle="Modern tailoring, structured silhouettes, and luxury essentials"
+          subtitle="Modern tailoring and structured silhouettes"
           badge="Masculine Atelier"
           categorySlug="men"
           products={menProducts}
@@ -195,7 +197,7 @@ export default async function HomePage() {
 
         <CategoryShowcase
           title="Women's Collection"
-          subtitle="Fluid silks, artisanal embellishments, and contemporary drapes"
+          subtitle="Fluid silks and contemporary artisanal drapes"
           badge="Feminine Couture"
           categorySlug="women"
           products={womenProducts}
@@ -203,7 +205,7 @@ export default async function HomePage() {
 
         <CategoryShowcase
           title="Kids' Curations"
-          subtitle="Playful ceremonial wear, lightweight fabrics, and festive charm"
+          subtitle="Playful ceremonial wear and festive charm"
           badge="Junior Atelier"
           categorySlug="kids"
           products={kidsProducts}

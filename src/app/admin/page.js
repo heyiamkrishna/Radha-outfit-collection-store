@@ -23,6 +23,10 @@ import {
   Search,
   QrCode,
   History,
+  Sparkles,
+  TrendingUp,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
 import BannerManagerModal from "@/components/admin/BannerManagerModal";
 import AddProductModal from "@/components/admin/AddProductModal";
@@ -42,7 +46,7 @@ export default function AdminDashboardPage() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [previewData, setPreviewData] = useState(null);
 
-  // Inventory table controls
+  // Inventory controls
   const [inventorySearch, setInventorySearch] = useState("");
   const [inventoryCategory, setInventoryCategory] = useState("all");
   const [stockUpdatingId, setStockUpdatingId] = useState(null);
@@ -115,7 +119,6 @@ export default function AdminDashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Adjust stock via /api/inventory with auto-audit logging
   const adjustStock = async (product, adjustment) => {
     try {
       setStockUpdatingId(product._id);
@@ -247,27 +250,27 @@ export default function AdminDashboardPage() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC] p-4">
-        <div className="p-6 sm:p-8 bg-white border border-[#E8EBF2] rounded-[28px] sm:rounded-[32px] text-center space-y-4 max-w-md w-full shadow-xl animate-in zoom-in-95">
-          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+        <div className="p-6 sm:p-8 bg-white/95 backdrop-blur-2xl border border-white/90 ring-1 ring-black/[0.04] rounded-[32px] text-center space-y-4 max-w-md w-full shadow-2xl animate-in zoom-in-95">
+          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-100">
             <XCircle className="w-6 h-6" />
           </div>
           <div>
             <h3 className="font-serif font-black uppercase text-base text-[#0C0D11]">
               Access Restricted
             </h3>
-            <p className="text-xs text-[#8E92A2] mt-1">{error}</p>
+            <p className="text-xs text-[#8E92A2] mt-1 font-mono">{error}</p>
           </div>
           <div className="pt-2 flex flex-col gap-2">
             <Link
               href="/login?redirect=/admin"
-              className="w-full py-3 rounded-full bg-[#0C0D11] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#3B7BF6] transition-all text-center"
+              className="w-full py-3 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-xs font-mono font-bold uppercase tracking-wider transition-all text-center shadow-xs active:scale-98"
             >
               Sign In With Admin Token
             </Link>
             <button
               type="button"
               onClick={() => fetchDashboardData()}
-              className="w-full py-2.5 rounded-full border border-[#E8EBF2] text-[#0C0D11] text-xs font-bold uppercase tracking-wider hover:bg-[#F4F5F9] transition-all cursor-pointer"
+              className="w-full py-2.5 rounded-full border border-black/[0.08] text-[#0C0D11] text-xs font-mono font-bold uppercase tracking-wider hover:bg-[#FAFAFC] transition-all cursor-pointer active:scale-98"
             >
               Retry Connection
             </button>
@@ -284,16 +287,19 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] text-[#0C0D11] pt-16 sm:pt-24 pb-28 px-3 sm:px-6 md:px-10 max-w-7xl mx-auto space-y-6 sm:space-y-10 selection:bg-[#0C0D11] selection:text-white">
-      
+    <div className="relative min-h-screen bg-[#FBFBFC] text-[#0C0D11] pt-4 sm:pt-8 pb-28 px-3.5 sm:px-6 md:px-10 max-w-7xl mx-auto space-y-6 sm:space-y-10 selection:bg-[#0C0D11] selection:text-white overflow-x-hidden animate-luxury-fade">
+      {/* ── Ambient Radial Atmosphere ── */}
+      <div className="pointer-events-none absolute top-[-5%] left-1/4 w-[550px] h-[550px] bg-gradient-to-br from-blue-100/30 via-indigo-50/15 to-transparent rounded-full blur-3xl -z-10" />
+      <div className="pointer-events-none absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-gradient-to-tl from-rose-100/20 via-amber-50/20 to-transparent rounded-full blur-3xl -z-10" />
+
       {/* ── 1. HEADER & COMMAND BAR ── */}
-      <header className="border-b border-[#E8EBF2] pb-5 sm:pb-6 space-y-4">
+      <header className="border-b border-black/[0.05] pb-5 sm:pb-6 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span className="text-[9px] sm:text-xs font-mono font-black uppercase tracking-widest text-[#3B7BF6] truncate">
-                Atelier Management Console
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="text-[8.5px] sm:text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-[#3B7BF6] truncate">
+                Atelier Intelligence Console
               </span>
             </div>
             <h1 className="text-xl sm:text-3xl md:text-4xl font-serif font-black uppercase tracking-tight text-[#0C0D11] truncate">
@@ -305,7 +311,7 @@ export default function AdminDashboardPage() {
             type="button"
             onClick={() => fetchDashboardData(true)}
             disabled={refreshing}
-            className="p-2.5 rounded-full bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-[#0C0D11] transition-all shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
+            className="p-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
             title="Refresh All Data"
             aria-label="Refresh Data"
           >
@@ -313,49 +319,44 @@ export default function AdminDashboardPage() {
           </button>
         </div>
 
-        {/* Responsive Flowing Action Strip */}
+        {/* Action Controls Strip */}
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-2.5 pt-1">
-          {/* Audit Log */}
           <button
             type="button"
             onClick={() => setAuditOpen(true)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-full bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-[#0C0D11] text-[11px] sm:text-xs font-bold uppercase tracking-wider shadow-xs active:scale-95 transition-all cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] text-[10.5px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-2xs active:scale-95 transition-all cursor-pointer"
           >
             <History className="w-3.5 h-3.5 text-[#3B7BF6]" />
             <span>Audit Log</span>
           </button>
 
-          {/* Scan QR */}
           <button
             type="button"
             onClick={() => setScannerOpen(true)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-full bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-[#0C0D11] text-[11px] sm:text-xs font-bold uppercase tracking-wider shadow-xs active:scale-95 transition-all cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[#0C0D11] text-[10.5px] sm:text-xs font-mono font-bold uppercase tracking-wider shadow-2xs active:scale-95 transition-all cursor-pointer"
           >
             <Scan className="w-3.5 h-3.5 text-[#3B7BF6]" />
             <span>Scan QR</span>
           </button>
 
-          {/* Banner Manager Modal */}
           <div className="w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto [&>button]:justify-center">
             <BannerManagerModal onCreated={() => fetchDashboardData(true)} />
           </div>
 
-          {/* Add Product Modal */}
           <div className="w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto [&>button]:justify-center">
             <AddProductModal onCreated={() => fetchDashboardData(true)} />
           </div>
 
-          {/* Quick Links */}
           <Link
             href="/admin/products"
-            className="w-full sm:w-auto px-4 py-2.5 rounded-full bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#0C0D11] text-center shadow-xs active:scale-95 transition-all"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-black/[0.07] hover:border-[#0C0D11] text-[10.5px] sm:text-xs font-mono font-bold uppercase tracking-wider text-[#0C0D11] text-center shadow-2xs active:scale-95 transition-all"
           >
             Garments
           </Link>
 
           <Link
             href="/admin/orders"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-[#0C0D11] text-white text-[11px] sm:text-xs font-black uppercase tracking-wider hover:bg-[#3B7BF6] shadow-sm text-center active:scale-95 transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-[10.5px] sm:text-xs font-mono font-black uppercase tracking-widest shadow-xs text-center active:scale-95 transition-all"
           >
             <ShoppingBag className="w-3.5 h-3.5 text-[#3B7BF6]" />
             <span>Orders Desk</span>
@@ -364,17 +365,19 @@ export default function AdminDashboardPage() {
       </header>
 
       {/* ── 2. EXECUTIVE METRICS GRID ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Gross Revenue */}
-        <div className="p-4 sm:p-5 rounded-[22px] sm:rounded-[26px] bg-white border border-[#E8EBF2] shadow-xs space-y-1">
+        <div className="p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-white/90 shadow-[0_12px_30px_-10px_rgba(12,13,17,0.03)] ring-1 ring-black/[0.03] space-y-1.5">
           <div className="flex items-center justify-between text-[#8E92A2]">
-            <span className="text-[9px] sm:text-[10px] font-mono uppercase font-bold">Gross Revenue</span>
-            <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
+            <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Gross Revenue</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-2xs">
+              <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
-          <p className="text-base sm:text-2xl font-black font-mono truncate">
+          <p className="text-base sm:text-2xl font-black font-mono truncate text-[#0C0D11]">
             ₹{(metrics.totalRevenue || 0).toLocaleString("en-IN")}
           </p>
-          <span className="text-[8px] sm:text-[9px] font-mono font-bold text-emerald-600 uppercase tracking-wider block">
+          <span className="text-[8px] sm:text-[9px] font-mono font-bold text-emerald-700 uppercase tracking-widest block">
             Authoritative Ledger
           </span>
         </div>
@@ -382,29 +385,33 @@ export default function AdminDashboardPage() {
         {/* Customer Orders */}
         <Link
           href="/admin/orders"
-          className="group p-4 sm:p-5 rounded-[22px] sm:rounded-[26px] bg-white border border-[#E8EBF2] shadow-xs hover:border-[#3B7BF6] transition-all space-y-1"
+          className="group p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-white/90 shadow-[0_12px_30px_-10px_rgba(12,13,17,0.03)] ring-1 ring-black/[0.03] hover:border-black/20 transition-all space-y-1.5"
         >
           <div className="flex items-center justify-between text-[#8E92A2]">
-            <span className="text-[9px] sm:text-[10px] font-mono uppercase font-bold">Client Orders</span>
-            <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B7BF6] group-hover:scale-110 transition-transform" />
+            <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Client Orders</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-50 text-[#3B7BF6] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <p className="text-base sm:text-2xl font-black font-mono">{metrics.orderCount || 0}</p>
-            <span className="text-[9px] sm:text-[10px] font-mono text-[#3B7BF6] flex items-center gap-0.5">
+            <p className="text-base sm:text-2xl font-black font-mono text-[#0C0D11]">{metrics.orderCount || 0}</p>
+            <span className="text-[9px] sm:text-[10px] font-mono font-bold text-[#3B7BF6] flex items-center gap-0.5">
               Fulfill <ArrowUpRight className="w-3 h-3" />
             </span>
           </div>
         </Link>
 
         {/* Total Stock Units */}
-        <div className="p-4 sm:p-5 rounded-[22px] sm:rounded-[26px] bg-white border border-[#E8EBF2] shadow-xs space-y-1">
+        <div className="p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-white/90 shadow-[0_12px_30px_-10px_rgba(12,13,17,0.03)] ring-1 ring-black/[0.03] space-y-1.5">
           <div className="flex items-center justify-between text-[#8E92A2]">
-            <span className="text-[9px] sm:text-[10px] font-mono uppercase font-bold">Total Stock Units</span>
-            <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0C0D11]" />
+            <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Stock Units</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shadow-2xs">
+              <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <p className="text-base sm:text-2xl font-black font-mono">{totalStockUnits}</p>
-            <span className="text-[9px] sm:text-[10px] font-mono text-[#8E92A2]">
+            <p className="text-base sm:text-2xl font-black font-mono text-[#0C0D11]">{totalStockUnits}</p>
+            <span className="text-[8.5px] sm:text-[9.5px] font-mono text-[#8E92A2]">
               {products.length} Styles
             </span>
           </div>
@@ -412,57 +419,61 @@ export default function AdminDashboardPage() {
 
         {/* Low Stock Radar or Active Banners */}
         {lowStockCount > 0 ? (
-          <div className="p-4 sm:p-5 rounded-[22px] sm:rounded-[26px] bg-white border border-rose-200 shadow-xs space-y-1">
-            <div className="flex items-center justify-between text-rose-500">
-              <span className="text-[9px] sm:text-[10px] font-mono uppercase font-bold">Low Stock Radar</span>
-              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-rose-200 shadow-[0_12px_30px_-10px_rgba(244,63,94,0.06)] space-y-1.5">
+            <div className="flex items-center justify-between text-rose-600">
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Low Stock Alert</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-50 flex items-center justify-center shadow-2xs">
+                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
             </div>
             <p className="text-base sm:text-2xl font-black font-mono text-rose-600">
               {lowStockCount}
             </p>
-            <span className="text-[8px] sm:text-[9px] font-mono text-rose-500 font-bold uppercase block">
-              Units ≤ 5 threshold
+            <span className="text-[8px] sm:text-[9px] font-mono text-rose-500 font-bold uppercase tracking-wider block">
+              Units ≤ 5 reserve
             </span>
           </div>
         ) : (
-          <div className="p-4 sm:p-5 rounded-[22px] sm:rounded-[26px] bg-white border border-[#E8EBF2] shadow-xs space-y-1">
+          <div className="p-4 sm:p-5 rounded-[24px] bg-white/90 backdrop-blur-xl border border-white/90 shadow-[0_12px_30px_-10px_rgba(12,13,17,0.03)] ring-1 ring-black/[0.03] space-y-1.5">
             <div className="flex items-center justify-between text-[#8E92A2]">
-              <span className="text-[9px] sm:text-[10px] font-mono uppercase font-bold">Active Banners</span>
-              <Sliders className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Active Banners</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-2xs">
+                <Sliders className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
             </div>
-            <p className="text-base sm:text-2xl font-black font-mono">{metrics.bannerCount || 0}</p>
-            <span className="text-[8px] sm:text-[9px] font-mono text-[#8E92A2] uppercase block">
+            <p className="text-base sm:text-2xl font-black font-mono text-[#0C0D11]">{metrics.bannerCount || 0}</p>
+            <span className="text-[8px] sm:text-[9px] font-mono text-[#8E92A2] uppercase tracking-wider block">
               Carousel Slides
             </span>
           </div>
         )}
-      </div>
+      </section>
 
       {/* ── 3. LIVE ATELIER INVENTORY MATRIX ── */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8EBF2] pb-3">
+      <section className="bg-white/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-white/90 shadow-[0_16px_45px_-12px_rgba(12,13,17,0.04)] ring-1 ring-black/[0.03] space-y-4 sm:space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-black/[0.05] pb-4">
           <div>
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-[#3B7BF6]" />
-              <h2 className="text-sm sm:text-lg font-serif font-black uppercase tracking-tight">
+              <h2 className="text-sm sm:text-lg font-serif font-black uppercase tracking-tight text-[#0C0D11]">
                 Live Inventory Ledger
               </h2>
             </div>
-            <p className="text-[10px] sm:text-xs text-[#8E92A2]">
-              Track real-time stock levels, adjust units on hand, and view QR specs
+            <p className="text-[10px] sm:text-xs text-[#8E92A2] font-mono">
+              Track stock levels, execute micro stock-adjustments, and print QR tags
             </p>
           </div>
 
           <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2">
             {/* Search Input */}
-            <div className="relative w-full sm:w-48">
-              <Search className="w-3.5 h-3.5 text-[#8E92A2] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative w-full sm:w-56">
+              <Search className="w-3.5 h-3.5 text-[#8E92A2] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={inventorySearch}
                 onChange={(e) => setInventorySearch(e.target.value)}
                 placeholder="Search style or SKU..."
-                className="w-full pl-8 pr-3 py-2 rounded-full bg-white border border-[#E8EBF2] text-xs font-mono outline-none focus:border-[#0C0D11]"
+                className="w-full pl-9 pr-3 py-2 rounded-full bg-[#FAFAFC] border border-black/[0.07] text-xs font-mono outline-none focus:bg-white focus:border-[#0C0D11] transition-all shadow-2xs"
               />
             </div>
 
@@ -473,10 +484,10 @@ export default function AdminDashboardPage() {
                   key={cat}
                   type="button"
                   onClick={() => setInventoryCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-mono uppercase font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-full text-[9.5px] font-mono uppercase font-bold transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                     inventoryCategory === cat
-                      ? "bg-[#0C0D11] text-white"
-                      : "bg-white text-[#4A4D59] border border-[#E8EBF2] hover:bg-[#F4F5F9]"
+                      ? "bg-[#0C0D11] text-white shadow-2xs"
+                      : "bg-[#FAFAFC] text-[#4A4D59] border border-black/[0.06] hover:bg-white"
                   }`}
                 >
                   {cat.replace("-", " ")}
@@ -487,13 +498,13 @@ export default function AdminDashboardPage() {
         </div>
 
         {filteredProducts.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-[24px] border border-dashed border-[#CBD5E1] text-xs font-mono text-[#8E92A2]">
-            No garments matched current inventory filters.
+          <div className="p-8 text-center bg-[#FAFAFC] rounded-[24px] border border-dashed border-black/[0.1] text-xs font-mono text-[#8E92A2]">
+            No garments matched current inventory criteria.
           </div>
         ) : (
           <>
-            {/* Mobile Stacked Touch Cards (Screens < 640px) */}
-            <div className="grid grid-cols-1 gap-2.5 sm:hidden">
+            {/* Mobile Stacked Touch Cards (< 640px) */}
+            <div className="grid grid-cols-1 gap-3 sm:hidden">
               {filteredProducts.map((p) => {
                 const isLow = (p.stockCount ?? 0) <= 5;
                 const isOut = (p.stockCount ?? 0) === 0;
@@ -502,10 +513,10 @@ export default function AdminDashboardPage() {
                 return (
                   <div
                     key={p._id}
-                    className="bg-white rounded-[22px] p-3.5 border border-[#E8EBF2] shadow-2xs space-y-3"
+                    className="bg-[#FAFAFC] rounded-[22px] p-3.5 border border-black/[0.05] shadow-2xs space-y-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="relative w-14 h-16 rounded-xl overflow-hidden bg-[#F4F5F9] border border-[#E8EBF2] shrink-0">
+                      <div className="relative w-14 h-16 rounded-xl overflow-hidden bg-white border border-black/[0.05] shrink-0">
                         <Image
                           src={p.images?.[0] || p.image || "/placeholder.jpg"}
                           alt={p.name}
@@ -515,10 +526,10 @@ export default function AdminDashboardPage() {
                         />
                       </div>
                       <div className="min-w-0 flex-1 space-y-1">
-                        <span className="px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase bg-[#EBF1FD] text-[#3B7BF6]">
+                        <span className="px-2 py-0.5 rounded-full text-[8px] font-mono font-bold uppercase bg-blue-50 text-[#3B7BF6] border border-blue-100/60">
                           {p.category}
                         </span>
-                        <h4 className="font-bold text-xs text-[#0C0D11] truncate">{p.name}</h4>
+                        <h4 className="font-serif font-bold text-xs uppercase text-[#0C0D11] truncate">{p.name}</h4>
                         <div className="flex items-center justify-between text-[10px] font-mono">
                           <span className="font-black text-[#0C0D11]">
                             ₹{(p.salePrice || p.price || 0).toLocaleString("en-IN")}
@@ -530,9 +541,9 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-[#F0F2F6]">
+                    <div className="flex items-center justify-between pt-2 border-t border-black/[0.04]">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-black border ${
+                        className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-black border ${
                           isOut
                             ? "bg-rose-50 text-rose-700 border-rose-200"
                             : isLow
@@ -543,19 +554,19 @@ export default function AdminDashboardPage() {
                         {p.stockCount ?? 0} Units
                       </span>
 
-                      {/* Touch-Friendly Stepper */}
+                      {/* Micro Stepper */}
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-[#F4F5F9] rounded-xl border border-[#E8EBF2] p-0.5 font-mono">
+                        <div className="flex items-center bg-white rounded-xl border border-black/[0.06] p-0.5 font-mono shadow-2xs">
                           <button
                             type="button"
                             disabled={isUpdating || (p.stockCount ?? 0) <= 0}
                             onClick={() => adjustStock(p, -1)}
-                            className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#0C0D11] hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
+                            className="w-7 h-7 rounded-lg bg-[#FAFAFC] flex items-center justify-center text-[#0C0D11] hover:text-rose-600 transition-colors disabled:opacity-30 cursor-pointer active:scale-90"
                             aria-label="Decrease stock"
                           >
-                            <Minus className="w-3.5 h-3.5" />
+                            <Minus className="w-3 h-3" />
                           </button>
-                          <span className="w-8 text-center text-xs font-bold">
+                          <span className="w-8 text-center text-xs font-black">
                             {isUpdating ? (
                               <Loader2 className="w-3 h-3 animate-spin mx-auto text-[#3B7BF6]" />
                             ) : (
@@ -566,10 +577,10 @@ export default function AdminDashboardPage() {
                             type="button"
                             disabled={isUpdating}
                             onClick={() => adjustStock(p, 1)}
-                            className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#0C0D11] hover:bg-emerald-50 hover:text-emerald-600 transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
+                            className="w-7 h-7 rounded-lg bg-[#FAFAFC] flex items-center justify-center text-[#0C0D11] hover:text-emerald-600 transition-colors disabled:opacity-30 cursor-pointer active:scale-90"
                             aria-label="Increase stock"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-3 h-3" />
                           </button>
                         </div>
 
@@ -589,10 +600,10 @@ export default function AdminDashboardPage() {
                               qrId: p._id.slice(-6),
                             })
                           }
-                          className="p-2 rounded-xl bg-white border border-[#E8EBF2] text-[#0C0D11] active:scale-95"
+                          className="p-2 rounded-xl bg-white border border-black/[0.06] text-[#0C0D11] active:scale-90 shadow-2xs cursor-pointer"
                           title="QR Tag"
                         >
-                          <QrCode className="w-4 h-4 text-[#3B7BF6]" />
+                          <QrCode className="w-3.5 h-3.5 text-[#3B7BF6]" />
                         </button>
                       </div>
                     </div>
@@ -601,30 +612,30 @@ export default function AdminDashboardPage() {
               })}
             </div>
 
-            {/* Desktop Table (Screens >= 640px) */}
-            <div className="hidden sm:block bg-white rounded-[28px] border border-[#E8EBF2] overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F8F9FC] border-b border-[#E8EBF2] font-mono text-[10px] uppercase text-[#8E92A2]">
+            {/* Desktop Table (>= 640px) */}
+            <div className="hidden sm:block rounded-[24px] border border-black/[0.06] overflow-hidden">
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left text-xs min-w-[640px]">
+                  <thead className="bg-[#FAFAFC] border-b border-black/[0.05] font-mono text-[9px] uppercase tracking-wider text-[#8E92A2]">
                     <tr>
-                      <th className="p-4 pl-6">Garment Silhouette</th>
-                      <th className="p-4">Rail & Sizes</th>
-                      <th className="p-4">Unit Price</th>
-                      <th className="p-4 text-center">Stock Level</th>
-                      <th className="p-4 pr-6 text-right">Inventory Actions</th>
+                      <th className="p-3.5 pl-5 font-bold">Garment Silhouette</th>
+                      <th className="p-3.5 font-bold">Rail & Sizes</th>
+                      <th className="p-3.5 font-bold">Unit Price</th>
+                      <th className="p-3.5 text-center font-bold">Stock Level</th>
+                      <th className="p-3.5 pr-5 text-right font-bold">Inventory Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0F2F6]">
+                  <tbody className="divide-y divide-black/[0.04]">
                     {filteredProducts.map((p) => {
                       const isLow = (p.stockCount ?? 0) <= 5;
                       const isOut = (p.stockCount ?? 0) === 0;
                       const isUpdating = stockUpdatingId === p._id;
 
                       return (
-                        <tr key={p._id} className="hover:bg-[#FAFAFC] transition-colors">
-                          <td className="p-4 pl-6">
+                        <tr key={p._id} className="hover:bg-[#FAFAFC]/70 transition-colors">
+                          <td className="p-3.5 pl-5">
                             <div className="flex items-center gap-3">
-                              <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-[#F4F5F9] border border-[#E8EBF2] shrink-0">
+                              <div className="relative w-11 h-14 rounded-xl overflow-hidden bg-white border border-black/[0.05] shrink-0">
                                 <Image
                                   src={p.images?.[0] || p.image || "/placeholder.jpg"}
                                   alt={p.name}
@@ -634,19 +645,19 @@ export default function AdminDashboardPage() {
                                 />
                               </div>
                               <div className="min-w-0 space-y-0.5">
-                                <h4 className="font-bold text-xs text-[#0C0D11] truncate max-w-[200px] lg:max-w-xs">
+                                <h4 className="font-serif font-bold text-xs uppercase text-[#0C0D11] truncate max-w-[180px] lg:max-w-xs">
                                   {p.name}
                                 </h4>
-                                <p className="text-[10px] font-mono text-[#8E92A2]">
+                                <p className="text-[9.5px] font-mono text-[#8E92A2]">
                                   SKU: {(p.slug || "ROC").slice(0, 10).toUpperCase()}
                                 </p>
                               </div>
                             </div>
                           </td>
 
-                          <td className="p-4">
+                          <td className="p-3.5">
                             <div className="space-y-1">
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-[#EBF1FD] text-[#3B7BF6]">
+                              <span className="px-2 py-0.5 rounded-full text-[8.5px] font-mono font-bold uppercase bg-blue-50 text-[#3B7BF6] border border-blue-100/60">
                                 {p.category}
                               </span>
                               <div className="text-[10px] font-mono text-[#8E92A2]">
@@ -655,14 +666,14 @@ export default function AdminDashboardPage() {
                             </div>
                           </td>
 
-                          <td className="p-4 font-mono font-bold text-[#0C0D11]">
+                          <td className="p-3.5 font-mono font-black text-[#0C0D11]">
                             ₹{(p.salePrice || p.price || 0).toLocaleString("en-IN")}
                           </td>
 
-                          <td className="p-4 text-center">
-                            <div className="inline-flex flex-col items-center gap-1">
+                          <td className="p-3.5 text-center">
+                            <div className="inline-flex flex-col items-center gap-0.5">
                               <span
-                                className={`px-3 py-1 rounded-full text-xs font-mono font-black border ${
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black border ${
                                   isOut
                                     ? "bg-rose-50 text-rose-700 border-rose-200"
                                     : isLow
@@ -673,27 +684,27 @@ export default function AdminDashboardPage() {
                                 {p.stockCount ?? 0} In Stock
                               </span>
                               {isLow && !isOut && (
-                                <span className="text-[9px] font-mono text-amber-600 font-bold">
+                                <span className="text-[8.5px] font-mono text-amber-600 font-bold uppercase">
                                   Low Reserve
                                 </span>
                               )}
                             </div>
                           </td>
 
-                          <td className="p-4 pr-6 text-right">
+                          <td className="p-3.5 pr-5 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {/* Fast Stepper Counter */}
-                              <div className="flex items-center bg-[#F4F5F9] rounded-xl border border-[#E8EBF2] p-0.5 font-mono">
+                              {/* Inline Stepper */}
+                              <div className="flex items-center bg-[#FAFAFC] rounded-xl border border-black/[0.06] p-0.5 font-mono shadow-2xs">
                                 <button
                                   type="button"
                                   disabled={isUpdating || (p.stockCount ?? 0) <= 0}
                                   onClick={() => adjustStock(p, -1)}
-                                  className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-[#0C0D11] hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
-                                  title="Reduce stock by 1"
+                                  className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-[#0C0D11] hover:text-rose-600 transition-colors disabled:opacity-30 cursor-pointer active:scale-90"
+                                  title="Reduce stock"
                                 >
                                   <Minus className="w-3 h-3" />
                                 </button>
-                                <span className="w-8 text-center text-xs font-bold">
+                                <span className="w-8 text-center text-xs font-black">
                                   {isUpdating ? (
                                     <Loader2 className="w-3 h-3 animate-spin mx-auto text-[#3B7BF6]" />
                                   ) : (
@@ -704,8 +715,8 @@ export default function AdminDashboardPage() {
                                   type="button"
                                   disabled={isUpdating}
                                   onClick={() => adjustStock(p, 1)}
-                                  className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-[#0C0D11] hover:bg-emerald-50 hover:text-emerald-600 transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
-                                  title="Add stock by 1"
+                                  className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-[#0C0D11] hover:text-emerald-600 transition-colors disabled:opacity-30 cursor-pointer active:scale-90"
+                                  title="Add stock"
                                 >
                                   <Plus className="w-3 h-3" />
                                 </button>
@@ -727,19 +738,19 @@ export default function AdminDashboardPage() {
                                     qrId: p._id.slice(-6),
                                   })
                                 }
-                                className="p-2 rounded-xl bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-[#0C0D11] transition-colors cursor-pointer"
-                                title="Inspect Garment QR Identity"
+                                className="p-2 rounded-xl bg-[#FAFAFC] hover:bg-white border border-black/[0.06] text-[#0C0D11] transition-colors cursor-pointer shadow-2xs active:scale-90"
+                                title="Inspect Garment QR"
                               >
-                                <QrCode className="w-4 h-4 text-[#3B7BF6]" />
+                                <QrCode className="w-3.5 h-3.5 text-[#3B7BF6]" />
                               </button>
 
                               <Link
                                 href={`/product/${p.slug || p._id}`}
                                 target="_blank"
-                                className="p-2 rounded-xl bg-white border border-[#E8EBF2] hover:border-[#0C0D11] text-[#0C0D11] transition-colors"
+                                className="p-2 rounded-xl bg-[#FAFAFC] hover:bg-white border border-black/[0.06] text-[#0C0D11] transition-colors shadow-2xs active:scale-90"
                                 title="View on Storefront"
                               >
-                                <Eye className="w-4 h-4" />
+                                <Eye className="w-3.5 h-3.5" />
                               </Link>
                             </div>
                           </td>
@@ -755,29 +766,28 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* ── 4. HERO CAROUSEL BANNER MANAGEMENT ── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between border-b border-[#E8EBF2] pb-3">
+      <section className="bg-white/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-white/90 shadow-[0_16px_45px_-12px_rgba(12,13,17,0.04)] ring-1 ring-black/[0.03] space-y-4">
+        <div className="flex items-center justify-between border-b border-black/[0.05] pb-3">
           <div>
-            <h2 className="text-sm sm:text-lg font-serif font-black uppercase tracking-tight">
+            <h2 className="text-sm sm:text-lg font-serif font-black uppercase tracking-tight text-[#0C0D11]">
               Homepage Hero Slides
             </h2>
-            <p className="text-[10px] sm:text-xs text-[#8E92A2]">
+            <p className="text-[10px] sm:text-xs text-[#8E92A2] font-mono">
               Live peek carousel slides active on your storefront
             </p>
           </div>
-          <span className="text-xs font-mono font-bold text-[#3B7BF6] bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+          <span className="text-[10px] font-mono font-bold text-[#3B7BF6] bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
             {banners.length} Active
           </span>
         </div>
 
         {banners.length === 0 ? (
-          <div className="p-6 sm:p-10 text-center bg-white rounded-[24px] sm:rounded-[28px] border border-dashed border-[#CBD5E1] space-y-3">
+          <div className="p-6 sm:p-8 text-center bg-[#FAFAFC] rounded-[24px] border border-dashed border-black/[0.1] space-y-2">
             <p className="text-xs font-mono font-bold uppercase tracking-wider text-[#0C0D11]">
               No Custom Promotional Slides
             </p>
-            <p className="text-[11px] text-[#8E92A2] max-w-md mx-auto">
-              The storefront is currently generating fallback slides dynamically from your
-              newest garments. Click &ldquo;Add Slider Banner&rdquo; to publish custom designs.
+            <p className="text-[11px] text-[#8E92A2] max-w-md mx-auto font-mono">
+              The storefront is currently generating fallback slides dynamically from your newest garments.
             </p>
           </div>
         ) : (
@@ -785,10 +795,10 @@ export default function AdminDashboardPage() {
             {banners.map((b) => (
               <div
                 key={b._id}
-                className="bg-white rounded-[24px] p-3.5 sm:p-4 border border-[#E8EBF2] shadow-xs flex flex-col justify-between space-y-3 hover:shadow-md transition-shadow"
+                className="bg-[#FAFAFC] rounded-[24px] p-3.5 sm:p-4 border border-black/[0.05] shadow-2xs flex flex-col justify-between space-y-3 hover:shadow-md transition-shadow"
               >
                 <div className="space-y-2.5">
-                  <div className="relative aspect-[2.2/1] w-full rounded-2xl overflow-hidden bg-[#F4F5F9]">
+                  <div className="relative aspect-[2.2/1] w-full rounded-2xl overflow-hidden bg-white border border-black/[0.04]">
                     <Image
                       src={b.image}
                       alt={b.title}
@@ -797,9 +807,9 @@ export default function AdminDashboardPage() {
                       sizes="(max-width: 768px) 100vw, 400px"
                     />
                     <span
-                      className={`absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider backdrop-blur-md shadow-xs ${
+                      className={`absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[8.5px] font-mono font-bold uppercase tracking-wider backdrop-blur-md shadow-xs ${
                         b.isActive
-                          ? "bg-emerald-500/90 text-white"
+                          ? "bg-emerald-600/90 text-white"
                           : "bg-[#0C0D11]/80 text-white"
                       }`}
                     >
@@ -808,36 +818,36 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div>
-                    <span className="text-[9px] font-mono font-bold uppercase text-[#3B7BF6]">
+                    <span className="text-[8.5px] font-mono font-bold uppercase text-[#3B7BF6]">
                       {b.badge || "Exclusive Run"}
                     </span>
-                    <h3 className="text-xs font-black uppercase tracking-tight text-[#0C0D11] truncate">
+                    <h3 className="text-xs font-serif font-black uppercase tracking-tight text-[#0C0D11] truncate">
                       {b.title}
                     </h3>
-                    <p className="text-[11px] text-[#8E92A2] truncate">
+                    <p className="text-[11px] text-[#8E92A2] truncate font-sans">
                       {b.subtitle || "No subtitle provided."}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-[#F0F2F6] pt-3 text-xs">
+                <div className="flex items-center justify-between border-t border-black/[0.04] pt-2.5 text-xs">
                   <button
                     type="button"
                     onClick={() => toggleBannerStatus(b._id, b.isActive)}
-                    className="flex items-center gap-1.5 font-bold cursor-pointer text-[#0C0D11] hover:text-[#3B7BF6] transition-colors"
+                    className="flex items-center gap-1.5 font-bold cursor-pointer text-[#0C0D11] hover:text-[#3B7BF6] transition-colors active:scale-95"
                   >
                     {b.isActive ? (
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     ) : (
                       <XCircle className="w-4 h-4 text-slate-400" />
                     )}
-                    <span>{b.isActive ? "Displayed" : "Hidden"}</span>
+                    <span className="text-[11px] font-mono uppercase">{b.isActive ? "Displayed" : "Hidden"}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => deleteBanner(b._id)}
-                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer active:scale-90"
                     title="Delete Slide"
                     aria-label="Delete Slide"
                   >
@@ -851,19 +861,19 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* ── 5. RECENT CLIENT DISPATCHES DESK ── */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8EBF2] pb-3">
+      <section className="bg-white/90 backdrop-blur-2xl rounded-[28px] sm:rounded-[36px] p-4 sm:p-7 md:p-8 border border-white/90 shadow-[0_16px_45px_-12px_rgba(12,13,17,0.04)] ring-1 ring-black/[0.03] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/[0.05] pb-3">
           <div>
-            <h2 className="text-sm sm:text-lg font-serif font-black uppercase tracking-tight">
+            <h2 className="text-sm sm:text-lg font-serif font-black uppercase tracking-tight text-[#0C0D11]">
               Recent Client Dispatches
             </h2>
-            <p className="text-[10px] sm:text-xs text-[#8E92A2]">
+            <p className="text-[10px] sm:text-xs text-[#8E92A2] font-mono">
               Latest orders placed across the online storefront
             </p>
           </div>
           <Link
             href="/admin/orders"
-            className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#3B7BF6] hover:underline self-start sm:self-auto"
+            className="inline-flex items-center gap-1 text-xs font-mono font-bold uppercase tracking-wider text-[#3B7BF6] hover:underline self-start sm:self-auto"
           >
             <span>View All Orders Desk</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -871,30 +881,30 @@ export default function AdminDashboardPage() {
         </div>
 
         {recentOrders.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-[24px] border border-dashed border-[#CBD5E1] text-xs font-mono text-[#8E92A2]">
+          <div className="p-8 text-center bg-[#FAFAFC] rounded-[24px] border border-dashed border-black/[0.1] text-xs font-mono text-[#8E92A2]">
             No client orders placed yet.
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Mobile Touch Cards */}
+            {/* Mobile Touch Cards (< 640px) */}
             <div className="grid grid-cols-1 gap-2.5 sm:hidden">
               {recentOrders.map((o) => (
                 <div
                   key={o._id}
-                  className="bg-white rounded-[20px] p-4 border border-[#E8EBF2] shadow-xs space-y-3"
+                  className="bg-[#FAFAFC] rounded-[20px] p-4 border border-black/[0.05] shadow-2xs space-y-3"
                 >
-                  <div className="flex items-center justify-between border-b border-[#F0F2F6] pb-2">
+                  <div className="flex items-center justify-between border-b border-black/[0.04] pb-2">
                     <span className="font-mono text-xs font-black text-[#0C0D11]">
                       {o.orderNumber}
                     </span>
-                    <span className="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full bg-[#ECEEF2] text-[#0C0D11] font-bold">
+                    <span className="text-[8.5px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-white border border-black/[0.06] text-[#0C0D11] font-bold">
                       {o.orderStatus}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-extrabold text-[#0C0D11]">
+                      <p className="text-xs font-serif font-black uppercase text-[#0C0D11]">
                         {o.shippingAddress?.fullName || "Guest Customer"}
                       </p>
                       <p className="text-[10px] text-[#8E92A2] font-mono">
@@ -912,13 +922,13 @@ export default function AdminDashboardPage() {
                     <button
                       type="button"
                       onClick={() => advanceOrderStatus(o._id, o.orderStatus)}
-                      className="py-2.5 rounded-xl bg-[#0C0D11] text-white text-[10px] font-mono font-bold uppercase hover:bg-[#3B7BF6] transition-colors"
+                      className="py-2 rounded-xl bg-[#0C0D11] hover:bg-[#1E2028] text-white text-[10px] font-mono font-bold uppercase transition-all active:scale-95 shadow-2xs"
                     >
                       Advance State →
                     </button>
                     <Link
                       href="/admin/orders"
-                      className="py-2.5 rounded-xl bg-[#F4F5F9] hover:bg-[#E8EBF2] text-[#0C0D11] text-center text-[10px] font-mono font-bold uppercase flex items-center justify-center gap-1"
+                      className="py-2 rounded-xl bg-white hover:bg-neutral-100 border border-black/[0.06] text-[#0C0D11] text-center text-[10px] font-mono font-bold uppercase flex items-center justify-center gap-1 active:scale-95 transition-all"
                     >
                       <Eye className="w-3 h-3" /> Details
                     </Link>
@@ -927,65 +937,65 @@ export default function AdminDashboardPage() {
               ))}
             </div>
 
-            {/* Desktop Table */}
-            <div className="hidden sm:block bg-white rounded-[28px] border border-[#E8EBF2] overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F8F9FC] border-b border-[#E8EBF2] font-mono text-[10px] uppercase text-[#8E92A2]">
+            {/* Desktop Table (>= 640px) */}
+            <div className="hidden sm:block rounded-[24px] border border-black/[0.06] overflow-hidden">
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left text-xs min-w-[640px]">
+                  <thead className="bg-[#FAFAFC] border-b border-black/[0.05] font-mono text-[9px] uppercase tracking-wider text-[#8E92A2]">
                     <tr>
-                      <th className="p-4 pl-6">Order Ref</th>
-                      <th className="p-4">Customer</th>
-                      <th className="p-4">Net Total</th>
-                      <th className="p-4">Payment</th>
-                      <th className="p-4">Fulfillment</th>
-                      <th className="p-4 pr-6 text-right">Actions</th>
+                      <th className="p-3.5 pl-5 font-bold">Order Ref</th>
+                      <th className="p-3.5 font-bold">Customer</th>
+                      <th className="p-3.5 font-bold">Net Total</th>
+                      <th className="p-3.5 font-bold">Payment</th>
+                      <th className="p-3.5 font-bold">Fulfillment</th>
+                      <th className="p-3.5 pr-5 text-right font-bold">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0F2F6]">
+                  <tbody className="divide-y divide-black/[0.04]">
                     {recentOrders.map((o) => (
-                      <tr key={o._id} className="hover:bg-[#FAFAFC] transition-colors">
-                        <td className="p-4 pl-6 font-mono font-bold text-[#0C0D11]">
+                      <tr key={o._id} className="hover:bg-[#FAFAFC]/70 transition-colors">
+                        <td className="p-3.5 pl-5 font-mono font-bold text-[#0C0D11]">
                           {o.orderNumber}
                         </td>
-                        <td className="p-4">
-                          <div className="font-bold text-[#0C0D11]">
+                        <td className="p-3.5">
+                          <div className="font-serif font-bold uppercase text-[#0C0D11]">
                             {o.shippingAddress?.fullName || "Guest Customer"}
                           </div>
                           <div className="text-[10px] text-[#8E92A2] font-mono">
                             {o.shippingAddress?.phone || "No contact"}
                           </div>
                         </td>
-                        <td className="p-4 font-mono font-black text-[#0C0D11]">
+                        <td className="p-3.5 font-mono font-black text-[#0C0D11]">
                           ₹{(o.totalAmount || 0).toLocaleString("en-IN")}
                         </td>
-                        <td className="p-4 uppercase font-mono text-[10px]">
+                        <td className="p-3.5 uppercase font-mono text-[10px]">
                           <span
-                            className={`px-2.5 py-1 rounded-full font-bold ${
+                            className={`px-2.5 py-0.5 rounded-full font-bold border ${
                               o.paymentStatus === "paid"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                                ? "bg-emerald-50 text-emerald-800 border-emerald-200/80"
+                                : "bg-amber-50 text-amber-800 border-amber-200/80"
                             }`}
                           >
                             {o.paymentMethod} • {o.paymentStatus}
                           </span>
                         </td>
-                        <td className="p-4 uppercase font-mono text-[10px]">
-                          <span className="px-2.5 py-1 rounded-full bg-[#ECEEF2] text-[#0C0D11] font-black border border-[#DFE2EB]">
+                        <td className="p-3.5 uppercase font-mono text-[10px]">
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#FAFAFC] text-[#0C0D11] font-bold border border-black/[0.06]">
                             {o.orderStatus}
                           </span>
                         </td>
-                        <td className="p-4 pr-6 text-right">
+                        <td className="p-3.5 pr-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
                               onClick={() => advanceOrderStatus(o._id, o.orderStatus)}
-                              className="px-3 py-1.5 rounded-full bg-[#0C0D11] hover:bg-[#3B7BF6] text-white text-[10px] font-mono font-bold uppercase transition-colors"
+                              className="px-3 py-1.5 rounded-full bg-[#0C0D11] hover:bg-[#1E2028] text-white text-[9.5px] font-mono font-bold uppercase transition-all shadow-2xs active:scale-95 cursor-pointer"
                             >
                               Advance →
                             </button>
                             <Link
                               href="/admin/orders"
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#F4F5F9] hover:bg-[#E8EBF2] text-[10px] font-mono font-bold uppercase tracking-wider text-[#0C0D11]"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white hover:bg-neutral-100 border border-black/[0.06] text-[9.5px] font-mono font-bold uppercase tracking-wider text-[#0C0D11] shadow-2xs active:scale-95 transition-all"
                             >
                               <Eye className="w-3 h-3" />
                             </Link>

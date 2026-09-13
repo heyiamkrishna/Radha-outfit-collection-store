@@ -34,7 +34,7 @@ export const metadata = {
 
 export default async function OrderInvoicePage({ params }) {
   const resolvedParams = await params;
-  const orderId = resolvedParams?.id;
+  const targetIdentifier = resolvedParams?.orderNumber || resolvedParams?.id;
 
   const headersList = await headers();
   const host = headersList.get("host") || "localhost:3000";
@@ -44,14 +44,14 @@ export default async function OrderInvoicePage({ params }) {
 
   const userPayload = await getSessionUser();
   if (!userPayload) {
-    redirect(`/login?redirect=/account/orders/${orderId}/invoice`);
+    redirect(`/login?redirect=/account/orders/${targetIdentifier}/invoice`);
   }
 
   await connectToDatabase();
 
-  const queryConditions = [{ orderNumber: orderId }];
-  if (mongoose.Types.ObjectId.isValid(orderId)) {
-    queryConditions.push({ _id: new mongoose.Types.ObjectId(orderId) });
+  const queryConditions = [{ orderNumber: targetIdentifier }];
+  if (mongoose.Types.ObjectId.isValid(targetIdentifier)) {
+    queryConditions.push({ _id: new mongoose.Types.ObjectId(targetIdentifier) });
   }
 
   const isAdmin = userPayload.role === "admin" || userPayload.role === "superadmin";
@@ -161,14 +161,14 @@ export default async function OrderInvoicePage({ params }) {
         }}
       />
 
-      <div className="min-h-screen bg-[#F7F8FA] py-6 sm:py-12 px-3 sm:px-6 print:bg-white print:p-0 print:m-0">
+      <div className="min-h-screen bg-[#F8F9FC] py-4 sm:py-10 px-2.5 sm:px-6 print:bg-white print:p-0 print:m-0 animate-luxury-fade">
         {/* Top Control Bar */}
-        <div className="max-w-4xl mx-auto flex items-center justify-between mb-5 print:hidden">
+        <div className="max-w-4xl mx-auto flex items-center justify-between mb-4 sm:mb-6 print:hidden">
           <Link
             href={isAdmin ? "/admin/orders" : "/account"}
-            className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-[#8E92A2] hover:text-[#0C0D11] transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-[#8E92A2] hover:text-[#0C0D11] transition-colors active:scale-95"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             <span>{isAdmin ? "Admin Desk" : "Account Wardrobe"}</span>
           </Link>
 
@@ -178,38 +178,38 @@ export default async function OrderInvoicePage({ params }) {
         {/* ── BESPOKE CERTIFICATE SHEET ── */}
         <div
           id="printable-invoice"
-          className="relative max-w-4xl mx-auto bg-white rounded-[28px] sm:rounded-[36px] p-6 sm:p-10 border border-[#E2E6EF] text-[#0C0D11] space-y-4 shadow-[0_25px_70px_-20px_rgba(12,13,17,0.07)] overflow-hidden"
-          style={{ width: "100%", maxWidth: "800px", margin: "0 auto" }}
+          className="relative max-w-4xl mx-auto bg-white rounded-[24px] sm:rounded-[36px] p-4 sm:p-8 md:p-10 border border-black/[0.08] text-[#0C0D11] space-y-4 shadow-[0_16px_50px_-15px_rgba(12,13,17,0.06)] overflow-hidden"
+          style={{ width: "100%", maxWidth: "840px", margin: "0 auto" }}
         >
           {/* Outer Inset Double Border Aesthetic */}
-          <div className="absolute inset-2 sm:inset-3 border border-[#E8EBF2] rounded-[22px] sm:rounded-[30px] pointer-events-none z-0 opacity-70" />
+          <div className="absolute inset-1.5 sm:inset-3 border border-black/[0.05] rounded-[18px] sm:rounded-[30px] pointer-events-none z-0" />
 
           {/* Watermark Crest */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none opacity-[0.02] text-[220px] font-serif font-black z-0 leading-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none opacity-[0.02] text-[140px] sm:text-[220px] font-serif font-black z-0 leading-none">
             ROC
           </div>
 
           {/* 1. Header & Brand Block */}
-          <header className="relative z-10 pb-4 border-b border-[#E8EBF2]">
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <header className="relative z-10 pb-3 sm:pb-4 border-b border-black/[0.06]">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
               <div className="space-y-1 max-w-md">
-                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0C0D11] text-white text-[8.5px] font-mono font-black uppercase tracking-widest">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0C0D11] text-white text-[8px] sm:text-[8.5px] font-mono font-black uppercase tracking-widest">
                   <Sparkles className="w-2.5 h-2.5 text-amber-300" />
                   <span>Tax Invoice & Certificate of Authenticity</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-serif font-black uppercase tracking-tight text-[#0C0D11] leading-none pt-0.5">
+                <h1 className="text-xl sm:text-3xl font-serif font-black uppercase tracking-tight text-[#0C0D11] leading-none pt-0.5">
                   Radha Outfit Collection
                 </h1>
-                <p className="text-[9.5px] text-[#8E92A2] font-mono leading-relaxed pt-0.5">
+                <p className="text-[8.5px] sm:text-[9.5px] text-[#8E92A2] font-mono leading-relaxed pt-0.5">
                   M/S RADHA OUTFIT COLLECTION PVT. LTD. • GSTIN: 07AAACR0926K1ZP
                   <br />
-                  Atelier Suite 4B, Barakhamba Road, Connaught Place, New Delhi 110001
+                  Central Atelier Suite 4B, Barakhamba Road, Connaught Place, New Delhi 110001
                 </p>
               </div>
 
               {/* QR Verification and Invoice Number */}
-              <div className="flex items-center gap-3 self-end sm:self-auto text-right">
-                <div className="bg-[#FAFBFD] p-1.5 rounded-xl border border-[#E8EBF2] shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 self-start sm:self-auto text-left sm:text-right">
+                <div className="bg-[#FAFBFD] p-1.5 rounded-xl border border-black/[0.06] shrink-0">
                   <OrderQRCode
                     orderNumber={order.orderNumber}
                     orderId={order._id?.toString()}
@@ -217,28 +217,28 @@ export default async function OrderInvoicePage({ params }) {
                   />
                 </div>
 
-                <div className="space-y-0.5 font-mono text-right">
-                  <span className="text-[8px] font-bold uppercase tracking-widest text-[#8E92A2] block">
+                <div className="space-y-0.5 font-mono text-left sm:text-right">
+                  <span className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-widest text-[#8E92A2] block">
                     Tax Document Ref
                   </span>
                   <p className="text-xs sm:text-sm font-black text-[#0C0D11] tracking-tight">
                     INV-{order.orderNumber}
                   </p>
-                  <div className="inline-flex items-center gap-1 text-[8.5px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <div className="inline-flex items-center gap-1 text-[8px] sm:text-[8.5px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80">
                     <CheckCircle2 className="w-2.5 h-2.5" />
                     <span>{order.paymentStatus === "paid" ? "Settled" : "Doorstep COD"}</span>
                   </div>
-                  <p className="text-[9px] text-[#8E92A2]">Dated: {orderDate}</p>
+                  <p className="text-[8.5px] sm:text-[9px] text-[#8E92A2]">Dated: {orderDate}</p>
                 </div>
               </div>
             </div>
           </header>
 
           {/* 2. Destination & Settlement Meta Grid */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs relative z-10">
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs relative z-10">
             {/* Consignee */}
-            <div className="p-3.5 rounded-xl bg-[#FAFBFD] border border-[#E8EBF2] space-y-1">
-              <div className="flex items-center justify-between text-[#8E92A2] text-[8.5px] font-mono uppercase font-bold">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-[#FAFBFD] border border-black/[0.05] space-y-1">
+              <div className="flex items-center justify-between text-[#8E92A2] text-[8px] sm:text-[8.5px] font-mono uppercase font-bold">
                 <span className="flex items-center gap-1 text-[#3B7BF6]">
                   <MapPin className="w-2.5 h-2.5" /> Billed & Shipped To
                 </span>
@@ -248,12 +248,12 @@ export default async function OrderInvoicePage({ params }) {
                 <h3 className="font-serif font-black text-xs uppercase text-[#0C0D11]">
                   {order.shippingAddress?.fullName}
                 </h3>
-                <p className="text-[#4A4D59] text-[9.5px] leading-snug mt-0.5">
+                <p className="text-[#4A4D59] text-[9px] sm:text-[9.5px] leading-snug mt-0.5">
                   {order.shippingAddress?.street}, {order.shippingAddress?.city},{" "}
                   {order.shippingAddress?.state} — {order.shippingAddress?.postalCode}
                 </p>
               </div>
-              <div className="pt-1 flex flex-wrap items-center gap-3 text-[9px] font-mono text-[#8E92A2]">
+              <div className="pt-1 flex flex-wrap items-center gap-3 text-[8.5px] sm:text-[9px] font-mono text-[#8E92A2]">
                 <span className="flex items-center gap-1">
                   <Phone className="w-2.5 h-2.5 text-[#0C0D11]" /> +91 {order.shippingAddress?.phone}
                 </span>
@@ -266,16 +266,16 @@ export default async function OrderInvoicePage({ params }) {
             </div>
 
             {/* Settlement & Logistics */}
-            <div className="p-3.5 rounded-xl bg-[#FAFBFD] border border-[#E8EBF2] space-y-1 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-[#8E92A2] text-[8.5px] font-mono uppercase font-bold">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-[#FAFBFD] border border-black/[0.05] space-y-1 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[#8E92A2] text-[8px] sm:text-[8.5px] font-mono uppercase font-bold">
                 <span className="flex items-center gap-1 text-[#0C0D11]">
                   <CreditCard className="w-2.5 h-2.5" /> Payment & Dispatch
                 </span>
                 <span className="text-emerald-700 font-bold">Verified</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[10px]">
+              <div className="grid grid-cols-2 gap-2 text-[9.5px] sm:text-[10px]">
                 <div>
-                  <span className="text-[#8E92A2] block text-[8px] uppercase font-mono">
+                  <span className="text-[#8E92A2] block text-[7.5px] sm:text-[8px] uppercase font-mono">
                     Payment Method
                   </span>
                   <strong className="font-mono font-bold uppercase text-[#0C0D11]">
@@ -283,7 +283,7 @@ export default async function OrderInvoicePage({ params }) {
                   </strong>
                 </div>
                 <div>
-                  <span className="text-[#8E92A2] block text-[8px] uppercase font-mono">
+                  <span className="text-[#8E92A2] block text-[7.5px] sm:text-[8px] uppercase font-mono">
                     Dispatch Status
                   </span>
                   <strong className="font-mono font-bold uppercase text-[#3B7BF6]">
@@ -291,8 +291,8 @@ export default async function OrderInvoicePage({ params }) {
                   </strong>
                 </div>
               </div>
-              <div className="text-[8.5px] font-mono text-[#8E92A2] flex items-center justify-between pt-1 border-t border-[#E8EBF2]">
-                <span>Logistics Partner:</span>
+              <div className="text-[8px] sm:text-[8.5px] font-mono text-[#8E92A2] flex items-center justify-between pt-1 border-t border-black/[0.05]">
+                <span>Logistics Express:</span>
                 <span className="font-bold text-[#0C0D11]">BlueDart Express Courier</span>
               </div>
             </div>
@@ -300,9 +300,9 @@ export default async function OrderInvoicePage({ params }) {
 
           {/* 3. Garments Manifest Table */}
           <section className="relative z-10">
-            <div className="overflow-hidden rounded-xl border border-[#E8EBF2]">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="bg-[#FAFBFD] border-b border-[#E8EBF2] font-mono text-[8.5px] uppercase text-[#8E92A2]">
+            <div className="overflow-x-auto rounded-xl border border-black/[0.06] no-scrollbar">
+              <table className="w-full text-left border-collapse text-xs min-w-[500px]">
+                <thead className="bg-[#FAFBFD] border-b border-black/[0.06] font-mono text-[8px] sm:text-[8.5px] uppercase text-[#8E92A2]">
                   <tr>
                     <th className="py-2 pl-3 font-bold">Garment Silhouette & Barcode</th>
                     <th className="py-2 px-2 text-center font-bold">HSN</th>
@@ -312,7 +312,7 @@ export default async function OrderInvoicePage({ params }) {
                     <th className="py-2 pr-3 text-right font-bold">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F0F2F6]">
+                <tbody className="divide-y divide-black/[0.04]">
                   {order.items?.map((item, idx) => {
                     const barcodeValue = String(item.product || item._id || order.orderNumber);
                     const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
@@ -320,29 +320,29 @@ export default async function OrderInvoicePage({ params }) {
                     return (
                       <tr key={idx} className="hover:bg-[#FAFAFC]">
                         <td className="py-2 pl-3 pr-2">
-                          <p className="font-serif font-black text-[11px] uppercase text-[#0C0D11]">
+                          <p className="font-serif font-black text-[10.5px] sm:text-[11px] uppercase text-[#0C0D11]">
                             {item.name}
                           </p>
-                          <p className="text-[8.5px] font-mono text-[#8E92A2]">
+                          <p className="text-[8px] sm:text-[8.5px] font-mono text-[#8E92A2]">
                             SKU: ROC-{(item.sku || item.slug || "GARMENT").slice(0, 10).toUpperCase()}
                           </p>
-                          <div className="pt-0.5 opacity-80 scale-90 origin-left">
+                          <div className="pt-0.5 opacity-85 scale-90 origin-left">
                             <ProductBarcode value={barcodeValue} />
                           </div>
                         </td>
-                        <td className="py-2 px-2 text-center align-top pt-2.5 font-mono text-[9px] text-[#8E92A2]">
+                        <td className="py-2 px-2 text-center align-top pt-2.5 font-mono text-[8.5px] sm:text-[9px] text-[#8E92A2]">
                           6204
                         </td>
-                        <td className="py-2 px-2 text-center align-top pt-2.5 font-mono text-[9.5px] font-bold">
+                        <td className="py-2 px-2 text-center align-top pt-2.5 font-mono text-[9px] sm:text-[9.5px] font-bold">
                           {item.size || "M"}
                         </td>
                         <td className="py-2 px-2 text-center align-top pt-2.5 font-mono font-bold text-[#0C0D11]">
                           {item.quantity}
                         </td>
-                        <td className="py-2 px-2 text-right align-top pt-2.5 font-mono text-[#4A4D59] text-[10px]">
+                        <td className="py-2 px-2 text-right align-top pt-2.5 font-mono text-[#4A4D59] text-[9.5px] sm:text-[10px]">
                           ₹{Number(item.price || 0).toLocaleString("en-IN")}
                         </td>
-                        <td className="py-2 pr-3 text-right align-top pt-2.5 font-mono font-black text-[#0C0D11] text-[10px]">
+                        <td className="py-2 pr-3 text-right align-top pt-2.5 font-mono font-black text-[#0C0D11] text-[9.5px] sm:text-[10px]">
                           ₹{itemTotal.toLocaleString("en-IN")}
                         </td>
                       </tr>
@@ -354,34 +354,34 @@ export default async function OrderInvoicePage({ params }) {
           </section>
 
           {/* 4. GST Breakdown & Final Settlement */}
-          <section className="flex flex-col sm:flex-row items-start justify-between gap-4 pt-1 text-xs relative z-10">
-            {/* Atelier Covenant & Security Assurance */}
-            <div className="max-w-xs space-y-1 font-mono text-[8.5px] text-[#8E92A2] leading-relaxed">
-              <span className="font-bold text-[#0C0D11] uppercase tracking-wider block text-[9px]">
+          <section className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4 pt-1 text-xs relative z-10">
+            {/* Atelier Guarantee Notice */}
+            <div className="max-w-xs space-y-1 font-mono text-[8px] sm:text-[8.5px] text-[#8E92A2] leading-relaxed">
+              <span className="font-bold text-[#0C0D11] uppercase tracking-wider block text-[8.5px] sm:text-[9px]">
                 Atelier Guarantee & Exchange
               </span>
               <p>
                 Every handcrafted silhouette carries our 7-day doorstep exchange warranty. Garments must
                 remain in unworn condition with all original security seals intact.
               </p>
-              <p className="text-[8px] pt-0.5 border-t border-[#E8EBF2]">
+              <p className="text-[7.5px] sm:text-[8px] pt-0.5 border-t border-black/[0.05]">
                 Computer-generated electronic tax invoice compliant with Indian GST laws.
               </p>
             </div>
 
             {/* Calculations Box */}
-            <div className="w-full sm:w-60 p-3 rounded-xl bg-[#FAFBFD] border border-[#E8EBF2] space-y-1 text-[9.5px]">
+            <div className="w-full sm:w-60 p-3 rounded-xl bg-[#FAFBFD] border border-black/[0.05] space-y-1 text-[9px] sm:text-[9.5px]">
               <div className="flex justify-between text-[#4A4D59]">
                 <span>Taxable Value:</span>
                 <span className="font-mono font-bold text-[#0C0D11]">
                   ₹{taxableValue.toLocaleString("en-IN")}
                 </span>
               </div>
-              <div className="flex justify-between text-[#8E92A2] text-[9px]">
+              <div className="flex justify-between text-[#8E92A2] text-[8.5px] sm:text-[9px]">
                 <span>CGST (6%):</span>
                 <span className="font-mono">₹{cgst.toLocaleString("en-IN")}</span>
               </div>
-              <div className="flex justify-between text-[#8E92A2] text-[9px]">
+              <div className="flex justify-between text-[#8E92A2] text-[8.5px] sm:text-[9px]">
                 <span>SGST (6%):</span>
                 <span className="font-mono">₹{sgst.toLocaleString("en-IN")}</span>
               </div>
@@ -391,8 +391,8 @@ export default async function OrderInvoicePage({ params }) {
                   {shippingCost === 0 ? "COMPLIMENTARY" : `₹${shippingCost.toLocaleString("en-IN")}`}
                 </span>
               </div>
-              <div className="flex justify-between text-xs font-black text-[#0C0D11] pt-1 border-t border-[#E8EBF2]">
-                <span className="uppercase tracking-wide text-[10px]">Grand Total:</span>
+              <div className="flex justify-between text-xs font-black text-[#0C0D11] pt-1 border-t border-black/[0.06]">
+                <span className="uppercase tracking-wide text-[9.5px] sm:text-[10px]">Grand Total:</span>
                 <span className="font-mono text-xs font-black">
                   ₹{totalAmount.toLocaleString("en-IN")}
                 </span>
@@ -400,29 +400,28 @@ export default async function OrderInvoicePage({ params }) {
             </div>
           </section>
 
-          {/* 5. Footer Signatory & Wax Stamp Aesthetic */}
-          <footer className="pt-3 border-t border-[#E8EBF2] flex items-center justify-between text-[8.5px] text-[#8E92A2] relative z-10">
+          {/* 5. Footer Signatory & Stamp */}
+          <footer className="pt-3 border-t border-black/[0.06] flex items-center justify-between text-[8px] sm:text-[8.5px] text-[#8E92A2] relative z-10">
             <div>
-              <p className="font-serif font-black uppercase text-[9.5px] text-[#0C0D11]">
+              <p className="font-serif font-black uppercase text-[9px] sm:text-[9.5px] text-[#0C0D11]">
                 Radha Outfit Collection
               </p>
               <p>© {new Date().getFullYear()} ROC Central Atelier. Official Record.</p>
             </div>
 
-            {/* Formal Signature & Wax Seal */}
-            <div className="flex items-center gap-3 text-right">
-              {/* Artisanal Wax Seal Badge */}
-              <div className="w-9 h-9 rounded-full border border-[#0C0D11] bg-[#0C0D11] text-white flex items-center justify-center shadow-xs">
-                <span className="font-serif font-black text-[10px] tracking-tight">ROC</span>
+            {/* Formal Signature & Seal */}
+            <div className="flex items-center gap-2.5 sm:gap-3 text-right">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[#0C0D11] bg-[#0C0D11] text-white flex items-center justify-center shadow-xs shrink-0">
+                <span className="font-serif font-black text-[9px] sm:text-[10px] tracking-tight">ROC</span>
               </div>
 
               <div className="space-y-0.5">
-                <div className="inline-block border-b border-[#0C0D11] pb-0.5 px-3">
+                <div className="inline-block border-b border-[#0C0D11] pb-0.5 px-2 sm:px-3">
                   <span className="font-serif italic text-xs text-[#0C0D11] tracking-wider">
                     Radha Outfit Collection
                   </span>
                 </div>
-                <p className="uppercase tracking-widest font-mono text-[7.5px] text-[#8E92A2] block">
+                <p className="uppercase tracking-widest font-mono text-[7px] sm:text-[7.5px] text-[#8E92A2] block">
                   Authorized Signatory
                 </p>
               </div>
