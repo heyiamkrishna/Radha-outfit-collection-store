@@ -27,16 +27,25 @@ async function verifyWithCandidateSecrets(token) {
   return { payload: null, error: lastError };
 }
 
+/**
+ * Centralized admin authentication verifier.
+ * Checks request authorization headers and HTTP-only session cookies.
+ *
+ * @param {Request} [req] - Optional incoming NextRequest or Request object
+ * @returns {Promise<{ authorized: boolean, user?: object, error?: string }>}
+ */
 export async function verifyAdmin(req) {
   try {
     let token = null;
 
+    // 1. Check Authorization Bearer header
     if (req?.headers) {
       const authHeader = req.headers.get("authorization");
       if (authHeader?.startsWith("Bearer ")) {
         token = authHeader.split(" ")[1];
       }
 
+      // If token not in Bearer, check Cookie header in Request
       if (!token) {
         const rawCookie = req.headers.get("cookie") || "";
         for (const name of COOKIE_NAMES) {
@@ -49,6 +58,7 @@ export async function verifyAdmin(req) {
       }
     }
 
+    // 2. Check Next.js server cookie store
     if (!token) {
       const cookieStore = await cookies();
       for (const name of COOKIE_NAMES) {
@@ -64,11 +74,13 @@ export async function verifyAdmin(req) {
       return { authorized: false, error: "Missing authentication token" };
     }
 
+    // 3. Verify signature
     const { payload, error } = await verifyWithCandidateSecrets(token);
     if (!payload) {
       return { authorized: false, error: error?.message || "Signature verification failed" };
     }
 
+    // 4. Validate administrative role
     const role = (payload.role || "").toLowerCase();
     if (role !== "admin" && role !== "superadmin") {
       return { authorized: false, error: "Forbidden: Admin privileges required" };
@@ -91,4 +103,6 @@ export async function verifyAdmin(req) {
   }
 }
 
+// Aliases for compatibility with all existing routes
+export const verifyAdminSession = verifyAdmin;
 export default verifyAdmin;
