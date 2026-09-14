@@ -1,133 +1,179 @@
 import mongoose from "mongoose";
 
-const VariantSchema = new mongoose.Schema(
-  {
-    variantId: {
-      type: String,
-      required: true,
-      default: () => new mongoose.Types.ObjectId().toString(),
-    },
-    colorName: {
-      type: String,
-      required: true,
-      trim: true,
-      default: "Classic",
-    },
-    colorHex: {
-      type: String,
-      trim: true,
-      default: "#000000",
-    },
-    size: {
-      type: String,
-      required: true,
-      enum: ["XS", "S", "M", "L", "XL", "XXL", "Free Size"],
-      default: "M",
-    },
-    sku: {
-      type: String,
-      required: true,
-      trim: true,
-      uppercase: true,
-    },
-    price: {
-      type: Number,
-      min: 0,
-    },
-    salePrice: {
-      type: Number,
-      min: 0,
-    },
-    stock: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-    },
-    images: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    qrToken: {
-      type: String,
-      trim: true,
-    },
+const VariantSchema = new mongoose.Schema({
+  variantId: {
+    type: String,
+    default: () =>
+      `var-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
   },
-  { _id: true }
-);
+  colorName: {
+    type: String,
+    default: "Standard",
+  },
+  colorHex: {
+    type: String,
+    default: "#0C0D11",
+  },
+  size: {
+    type: String,
+    required: [true, "Size identifier is required."],
+    trim: true,
+  },
+  sku: {
+    type: String,
+    trim: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  salePrice: {
+    type: Number,
+  },
+  stock: {
+    type: Number,
+    default: 10,
+    min: 0,
+  },
+  images: {
+    type: [String],
+    default: [],
+  },
+  qrToken: {
+    type: String,
+  },
+});
 
 const ProductSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Product name is required"],
+      required: [true, "Garment title is mandatory."],
       trim: true,
-      index: true,
     },
     slug: {
       type: String,
-      required: [true, "Product slug is required"],
+      required: [true, "Unique URL slug is mandatory."],
       unique: true,
-      lowercase: true,
       trim: true,
+      lowercase: true,
+      index: true,
     },
     description: {
       type: String,
-      default: "Handcrafted bespoke tailoring with luxury textile architecture.",
-      trim: true,
+      default: "",
     },
     category: {
       type: String,
-      required: [true, "Category is required"],
+      required: true,
+      enum: ["women", "men", "kids", "accessories"],
       lowercase: true,
-      trim: true,
       index: true,
     },
     subcategory: {
       type: String,
+      default: "Atelier Haute Couture",
       trim: true,
-      default: "Haute Couture",
     },
     brand: {
       type: String,
       default: "Radha Outfit Collection",
       trim: true,
     },
+
+    // ── Technical Dossier & Highlights ──
+    fabric: {
+      type: String,
+      default: "Pure Cotton",
+      trim: true,
+    },
     material: {
       type: String,
+      default: "100% Pure Combed Cotton",
       trim: true,
-      default: "Bespoke Silk / Cotton Blend",
     },
+    sleeve: {
+      type: String,
+      default: "Full Sleeve",
+      trim: true,
+    },
+    pattern: {
+      type: String,
+      default: "Solid",
+      trim: true,
+    },
+    color: {
+      type: String,
+      default: "Imperial Purple",
+      trim: true,
+    },
+    fit: {
+      type: String,
+      default: "Slim",
+      trim: true,
+    },
+    collar: {
+      type: String,
+      default: "Spread Collar",
+      trim: true,
+    },
+    styleCode: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    packOf: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+
+    // ── Valuation & Stock Metrics ──
     price: {
       type: Number,
-      required: [true, "Base price is required"],
+      required: [true, "Original retail valuation is mandatory."],
       min: 0,
     },
     salePrice: {
       type: Number,
       min: 0,
     },
-    images: [
-      {
-        type: String,
-        required: true,
-      },
-    ],
-    variants: [VariantSchema],
-    sizes: {
-      type: [String],
-      default: ["S", "M", "L", "XL"],
-    },
     stockCount: {
       type: Number,
       default: 10,
+      min: 0,
     },
     inStock: {
       type: Boolean,
       default: true,
       index: true,
+    },
+
+    // ── Visual Showcase Assets ──
+    image: {
+      type: String,
+      default: "/placeholder.jpg",
+    },
+    images: {
+      type: [String],
+      default: [],
+    },
+
+    // ── Atelier Sizes & Variants ──
+    sizes: {
+      type: [String],
+      default: ["38 (S)", "39 (M)", "40 (L)", "42 (XL)"],
+    },
+    variants: {
+      type: [VariantSchema],
+      default: [],
+    },
+
+    // ── Curation Status Badges ──
+    badge: {
+      type: String,
+      default: "Exclusive",
+      trim: true,
     },
     featured: {
       type: Boolean,
@@ -142,11 +188,12 @@ const ProductSchema = new mongoose.Schema(
     bestSeller: {
       type: Boolean,
       default: false,
-      index: true,
     },
+
+    // ── Ratings & Social Proof ──
     ratings: {
       type: Number,
-      default: 5.0,
+      default: 5,
       min: 1,
       max: 5,
     },
@@ -160,23 +207,22 @@ const ProductSchema = new mongoose.Schema(
   }
 );
 
-// High-speed faceted search and variant lookups
-ProductSchema.index({ category: 1, inStock: 1, createdAt: -1 });
-ProductSchema.index({ "variants.sku": 1 });
-ProductSchema.index({ "variants.qrToken": 1 }, { sparse: true });
-
-// Ensure total stockCount mirrors variants when present
+// Fallback inStock sync before save
 ProductSchema.pre("save", function (next) {
-  if (this.variants && this.variants.length > 0) {
-    this.stockCount = this.variants.reduce((acc, v) => acc + (v.stock || 0), 0);
-    this.inStock = this.stockCount > 0;
-
-    const sizeSet = new Set(this.variants.map((v) => v.size).filter(Boolean));
-    if (sizeSet.size > 0) {
-      this.sizes = Array.from(sizeSet);
-    }
+  if (this.stockCount <= 0) {
+    this.inStock = false;
+  } else {
+    this.inStock = true;
   }
   next();
 });
 
-export default mongoose.models.Product || mongoose.model("Product", ProductSchema);
+// Clear stale cached schema in Next.js development server
+if (process.env.NODE_ENV !== "production") {
+  delete mongoose.models.Product;
+}
+
+const Product =
+  mongoose.models.Product || mongoose.model("Product", ProductSchema);
+
+export default Product;

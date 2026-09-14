@@ -7,7 +7,7 @@ export const useCartStore = create(
       cart: [],
       isDrawerOpen: false,
 
-      // Getter alias for backwards compatibility with previous components
+      // Getter alias for backward compatibility
       get items() {
         return get().cart || [];
       },
@@ -26,7 +26,8 @@ export const useCartStore = create(
       getSubtotal: () => {
         const list = get().cart || [];
         return list.reduce(
-          (total, item) => total + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+          (total, item) =>
+            total + (Number(item.price || item.salePrice) || 0) * (Number(item.quantity) || 1),
           0
         );
       },
@@ -61,7 +62,7 @@ export const useCartStore = create(
                 image: product.image || product.images?.[0] || "/placeholder.jpg",
                 size,
                 quantity: Number(quantity) || 1,
-                slug: product.slug || "",
+                slug: product.slug || pId,
               },
             ];
           }
@@ -103,11 +104,6 @@ export const useCartStore = create(
     {
       name: "radha-cart-storage",
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (state && !state.cart && state.items) {
-          state.cart = state.items;
-        }
-      },
     }
   )
 );

@@ -1,44 +1,42 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-const DEFAULT_WISHLIST = [
-  {
-    _id: "preview-liked-1",
-    id: "preview-liked-1",
-    name: "Pleated Linen Trouser",
-    price: 5499,
-    salePrice: 5499,
-    image:
-      "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=800&auto=format&fit=crop",
-    slug: "pleated-linen-trouser",
-  },
-];
-
 export const useWishlistStore = create(
   persist(
     (set, get) => ({
-      items: DEFAULT_WISHLIST,
+      items: [],
+      isWishlistOpen: false,
 
-      // Getter alias for backwards compatibility
+      // ── Drawer Controls (Stable references) ──
+      openWishlist: () => set({ isWishlistOpen: true }),
+      closeWishlist: () => set({ isWishlistOpen: false }),
+      toggleWishlistDrawer: () =>
+        set((state) => ({ isWishlistOpen: !state.isWishlistOpen })),
+
+      // ── Backward-compatible Getter ──
       get wishlist() {
-        return get().items;
+        return get().items || [];
       },
 
+      // ── Toggle Item In / Out of Wishlist ──
       toggleWishlist: (product) => {
         if (!product) return;
-        const pId = (product._id || product.id || "").toString();
+        const rawId = product._id || product.id;
+        if (!rawId) return;
+
+        const pId = String(rawId);
         const currentList = get().items || [];
         const exists = currentList.some(
-          (i) => (i._id || i.id || "").toString() === pId
+          (item) => String(item._id || item.id) === pId
         );
 
-        let updated;
+        let updatedList;
         if (exists) {
-          updated = currentList.filter(
-            (i) => (i._id || i.id || "").toString() !== pId
+          updatedList = currentList.filter(
+            (item) => String(item._id || item.id) !== pId
           );
         } else {
-          updated = [
+          updatedList = [
             ...currentList,
             {
               _id: pId,
@@ -48,32 +46,34 @@ export const useWishlistStore = create(
               price: Number(product.price || 0),
               salePrice: Number(product.salePrice || product.price || 0),
               image:
-                product.images?.[0] || product.image || "/placeholder.jpg",
-              slug: product.slug || "",
+                product.image ||
+                product.images?.[0] ||
+                "/placeholder.jpg",
+              slug: product.slug || pId,
             },
           ];
         }
-        set({ items: updated });
+
+        set({ items: updatedList });
       },
 
+      // ── Check if item is already saved ──
       isInWishlist: (productId) => {
         if (!productId) return false;
-        const pId = productId.toString();
+        const pId = String(productId);
         return (get().items || []).some(
-          (i) => (i._id || i.id || "").toString() === pId
+          (item) => String(item._id || item.id) === pId
         );
       },
 
+      // ── Clear All Items ──
       clearWishlist: () => set({ items: [] }),
     }),
     {
       name: "radha-wishlist-storage",
       storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (state && !state.items && state.wishlist) {
-          state.items = state.wishlist;
-        }
-      },
+      // Prevent SSR hydration state collisions
+      partialize: (state) => ({ items: state.items }),
     }
   )
 );
