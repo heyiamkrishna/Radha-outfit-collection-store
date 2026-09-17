@@ -8,30 +8,23 @@ import {
   Search,
   RefreshCw,
   Loader2,
-  ExternalLink,
-  ArrowUpRight,
   Eye,
-  CheckCircle2,
   Clock,
-  Truck,
-  Package,
-  Receipt,
   Store,
   User,
   Phone,
   MapPin,
   FileText,
   X,
-  Printer,
   ChevronRight,
   Sparkles,
-  ShieldCheck,
-  TrendingUp,
-  ArrowRight,
   IndianRupee,
-  BadgePercent,
-  Check,
-  Filter,
+  TrendingUp,
+  Banknote,
+  Globe,
+  Tag,
+  Receipt,
+  Calendar,
 } from "lucide-react";
 
 export default function AdminOrdersPage() {
@@ -106,21 +99,67 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const manualCount = useMemo(() => {
+  // ── Financial & Metric Calculations ──
+  const grossRevenue = useMemo(() => {
+    return orders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  }, [orders]);
+
+  const manualOrders = useMemo(() => {
     return orders.filter(
       (o) =>
         o.isManualEntry ||
         o.orderNumber?.startsWith("ROC-POS") ||
         o.orderNumber?.startsWith("ROC-MAN")
-    ).length;
+    );
   }, [orders]);
 
-  const grossRevenue = useMemo(() => {
-    return orders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  const manualCount = manualOrders.length;
+  const manualRevenue = useMemo(() => {
+    return manualOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  }, [manualOrders]);
+
+  const onlineRevenue = grossRevenue - manualRevenue;
+
+  const cashOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const m = o.paymentMethod?.toLowerCase() || "";
+      return m === "cash" || m === "cod" || m.includes("cash");
+    });
   }, [orders]);
 
+  const cashRevenue = useMemo(() => {
+    return cashOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  }, [cashOrders]);
+
+  const averageTicket = orders.length > 0 ? Math.round(grossRevenue / orders.length) : 0;
   const pendingDispatches = useMemo(() => {
     return orders.filter((o) => o.orderStatus !== "delivered").length;
+  }, [orders]);
+
+  // ── Product-Level Sales Performance Calculation ──
+  const productSellStats = useMemo(() => {
+    const map = {};
+    orders.forEach((o) => {
+      (o.items || []).forEach((item) => {
+        const key = item.name || "Bespoke Silhouette";
+        if (!map[key]) {
+          map[key] = {
+            name: key,
+            quantity: 0,
+            revenue: 0,
+            image: item.image || "/placeholder.jpg",
+          };
+        }
+        const qty = Number(item.quantity) || 1;
+        const price = Number(item.price) || 0;
+        map[key].quantity += qty;
+        map[key].revenue += price * qty;
+      });
+    });
+
+    return Object.values(map)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 4); // Top 4 best-sellers
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
@@ -145,6 +184,23 @@ export default function AdminOrdersPage() {
       return matchesSearch;
     });
   }, [orders, searchQuery, statusFilter]);
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return { date: "N/A", time: "N/A" };
+    const d = new Date(dateString);
+    return {
+      date: d.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+      time: d.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
+    };
+  };
 
   return (
     <div className="relative min-h-screen bg-[#FBFBFC] text-[#0C0D11] pt-4 sm:pt-8 pb-32 px-3.5 sm:px-6 md:px-12 max-w-7xl mx-auto space-y-7 sm:space-y-10 selection:bg-[#0C0D11] selection:text-white">
@@ -192,7 +248,9 @@ export default function AdminOrdersPage() {
           {/* Gross Settlement */}
           <div className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-xs space-y-1.5">
             <div className="flex items-center justify-between text-[#8E92A2]">
-              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Gross Settlement</span>
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">
+                Gross Settlement
+              </span>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-2xs">
                 <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
@@ -201,26 +259,7 @@ export default function AdminOrdersPage() {
               ₹{grossRevenue.toLocaleString("en-IN")}
             </p>
             <span className="text-[8px] sm:text-[9px] font-mono font-bold text-emerald-700 uppercase tracking-widest block">
-              Audited Ledger
-            </span>
-          </div>
-
-          {/* Aggregate Pieces */}
-          <div
-            onClick={() => setStatusFilter("all")}
-            className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-xs space-y-1.5 cursor-pointer hover:border-[#0C0D11] transition-all"
-          >
-            <div className="flex items-center justify-between text-[#8E92A2]">
-              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Total Sales</span>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-50 text-[#3B7BF6] flex items-center justify-center shadow-2xs">
-                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </div>
-            </div>
-            <p className="text-base sm:text-2xl font-black font-mono text-[#0C0D11]">
-              {orders.length}
-            </p>
-            <span className="text-[8px] sm:text-[9px] font-mono font-bold text-[#3B7BF6] uppercase tracking-widest block">
-              Omnichannel Run
+              Audited Ledger ({orders.length} orders)
             </span>
           </div>
 
@@ -230,41 +269,115 @@ export default function AdminOrdersPage() {
             className="p-4 sm:p-5 rounded-[24px] bg-emerald-50/40 border border-emerald-200/80 shadow-xs space-y-1.5 cursor-pointer hover:border-emerald-600 transition-all"
           >
             <div className="flex items-center justify-between text-emerald-800">
-              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">Boutique POS</span>
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">
+                Boutique POS
+              </span>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-2xs">
                 <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
             <p className="text-base sm:text-2xl font-black font-mono text-emerald-900">
-              {manualCount}
+              ₹{manualRevenue.toLocaleString("en-IN")}
             </p>
             <span className="text-[8px] sm:text-[9px] font-mono font-bold text-emerald-700 uppercase tracking-widest block">
-              Counter Hand-Offs
+              {manualCount} Counter Invoices
             </span>
           </div>
 
-          {/* Active Dispatches */}
+          {/* Online Web Store */}
           <div
-            onClick={() => setStatusFilter("processing")}
+            onClick={() => setStatusFilter("online")}
             className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-xs space-y-1.5 cursor-pointer hover:border-[#0C0D11] transition-all"
           >
             <div className="flex items-center justify-between text-[#8E92A2]">
-              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">In Progress</span>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-2xs">
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">
+                Storefront Digital
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-50 text-[#3B7BF6] flex items-center justify-center shadow-2xs">
+                <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
-            <p className="text-base sm:text-2xl font-black font-mono text-amber-600">
-              {pendingDispatches}
+            <p className="text-base sm:text-2xl font-black font-mono text-[#0C0D11]">
+              ₹{onlineRevenue.toLocaleString("en-IN")}
+            </p>
+            <span className="text-[8px] sm:text-[9px] font-mono font-bold text-[#3B7BF6] uppercase tracking-widest block">
+              {orders.length - manualCount} Web Dispatches
+            </span>
+          </div>
+
+          {/* Average Ticket Size */}
+          <div className="p-4 sm:p-5 rounded-[24px] bg-white border border-black/[0.06] shadow-xs space-y-1.5">
+            <div className="flex items-center justify-between text-[#8E92A2]">
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono uppercase font-bold tracking-wider">
+                Avg Ticket Size
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-2xs">
+                <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <p className="text-base sm:text-2xl font-black font-mono text-[#0C0D11]">
+              ₹{averageTicket.toLocaleString("en-IN")}
             </p>
             <span className="text-[8px] sm:text-[9px] font-mono font-bold text-amber-600 uppercase tracking-widest block">
-              Awaiting Delivery
+              Cash Vol: ₹{cashRevenue.toLocaleString("en-IN")}
             </span>
           </div>
         </div>
+
+        {/* ── 3. PRODUCT-WISE SALES BREAKDOWN ── */}
+        {productSellStats.length > 0 && (
+          <div className="p-4 sm:p-5 rounded-[28px] bg-white border border-black/[0.06] shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-black/[0.04] pb-2.5">
+              <div className="flex items-center gap-1.5 text-[#0C0D11]">
+                <Tag className="w-3.5 h-3.5 text-[#3B7BF6]" />
+                <h3 className="font-serif font-black uppercase text-xs sm:text-sm tracking-tight">
+                  Top Performing Silhouettes (Product Sell Matrix)
+                </h3>
+              </div>
+              <span className="text-[9px] font-mono text-[#8E92A2] uppercase tracking-wider">
+                Revenue Leaderboard
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {productSellStats.map((item, idx) => {
+                const percentOfGross =
+                  grossRevenue > 0 ? Math.round((item.revenue / grossRevenue) * 100) : 0;
+
+                return (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-2xl bg-[#FAFAFC] border border-black/[0.05] flex items-center gap-3"
+                  >
+                    <div className="relative w-11 h-14 rounded-xl overflow-hidden bg-white border border-black/[0.06] shrink-0">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                        sizes="44px"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-0.5 font-mono">
+                      <p className="font-serif font-bold uppercase text-xs text-[#0C0D11] truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-[10px] text-[#8E92A2]">
+                        {item.quantity} Units Sold ({percentOfGross}% rev)
+                      </p>
+                      <p className="text-xs font-black text-[#0C0D11]">
+                        ₹{item.revenue.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* ── 3. CONTROLS STRIP: SEARCH & HORIZONTAL FILTER PILLS ── */}
+      {/* ── 4. CONTROLS STRIP: SEARCH & FILTER PILLS ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-[26px] border border-black/[0.06] shadow-2xs">
         <div className="relative w-full md:w-80">
           <Search className="w-3.5 h-3.5 text-[#8E92A2] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -310,7 +423,7 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* ── 4. TRANSACTIONS STREAM ── */}
+      {/* ── 5. TRANSACTIONS STREAM WITH TIME DETAILS ── */}
       {loading ? (
         <div className="py-28 flex flex-col items-center justify-center gap-3 bg-white rounded-[32px] border border-black/[0.06]">
           <Loader2 className="w-8 h-8 animate-spin text-[#0C0D11]" />
@@ -337,6 +450,8 @@ export default function AdminOrdersPage() {
                 o.isManualEntry ||
                 o.orderNumber?.startsWith("ROC-POS") ||
                 o.orderNumber?.startsWith("ROC-MAN");
+
+              const { date, time } = formatDateTime(o.createdAt);
 
               return (
                 <div
@@ -391,7 +506,13 @@ export default function AdminOrdersPage() {
                       <p className="text-[11px] font-mono text-[#4A4D59] truncate">
                         Client: {o.shippingAddress?.fullName || "Walk-in Patron"}
                       </p>
-                      <p className="text-[10px] font-mono text-[#8E92A2]">
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#3B7BF6]">
+                        <Clock className="w-3 h-3" />
+                        <span>
+                          {date} • {time}
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-mono text-[#8E92A2] pt-0.5">
                         {o.paymentMethod?.toUpperCase()} • ₹
                         {Number(o.totalAmount || 0).toLocaleString("en-IN")}
                       </p>
@@ -424,14 +545,15 @@ export default function AdminOrdersPage() {
           {/* Desktop Matrix Register (>= 640px) */}
           <div className="hidden sm:block bg-white rounded-[32px] border border-black/[0.06] overflow-hidden shadow-xs">
             <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left text-xs min-w-[720px]">
+              <table className="w-full text-left text-xs min-w-[780px]">
                 <thead className="bg-[#FAFAFC] border-b border-black/[0.05] font-mono text-[9px] uppercase tracking-wider text-[#8E92A2]">
                   <tr>
                     <th className="p-4 pl-6 font-bold">Transaction Ref</th>
                     <th className="p-4 font-bold">Channel</th>
                     <th className="p-4 font-bold">Patron Credentials</th>
                     <th className="p-4 font-bold">Piece Preview</th>
-                    <th className="p-4 font-bold">Fulfillment Status</th>
+                    <th className="p-4 font-bold">Exact Timestamp</th>
+                    <th className="p-4 font-bold">Status</th>
                     <th className="p-4 text-right font-bold">Settlement</th>
                     <th className="p-4 pr-6 text-right font-bold">Inspect</th>
                   </tr>
@@ -442,6 +564,8 @@ export default function AdminOrdersPage() {
                       o.isManualEntry ||
                       o.orderNumber?.startsWith("ROC-POS") ||
                       o.orderNumber?.startsWith("ROC-MAN");
+
+                    const { date, time } = formatDateTime(o.createdAt);
 
                     return (
                       <tr
@@ -492,6 +616,15 @@ export default function AdminOrdersPage() {
                           </div>
                         </td>
 
+                        <td className="p-4 font-mono space-y-0.5">
+                          <span className="text-[#0C0D11] font-bold block text-xs">
+                            {date}
+                          </span>
+                          <span className="text-[#3B7BF6] text-[10px] flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" /> {time}
+                          </span>
+                        </td>
+
                         <td className="p-4">
                           <span
                             className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase border ${
@@ -539,18 +672,16 @@ export default function AdminOrdersPage() {
         </>
       )}
 
-      {/* ── 5. HAUTE COUTURE INSPECTION DOSSIER (SLIDING SERRATED VOUCHER) ── */}
+      {/* ── 6. HAUTE COUTURE INSPECTION DOSSIER ── */}
       {selectedOrder && (
         <div className="fixed inset-0 z-[99999] flex justify-end overflow-hidden">
-          {/* Backdrop */}
           <div
             onClick={() => setSelectedOrder(null)}
             className="absolute inset-0 bg-[#0C0D11]/75 backdrop-blur-sm transition-opacity duration-200"
           />
 
-          {/* Drawer Body */}
           <div className="relative z-10 w-full sm:max-w-md bg-white h-full shadow-[0_30px_70px_-15px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
-            {/* Top Vault Header */}
+            {/* Top Header */}
             <div className="bg-[#0C0D11] text-white px-6 py-5 text-center space-y-1 relative shrink-0">
               <button
                 type="button"
@@ -582,7 +713,17 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* Scrollable Body */}
-            <div className="p-6 overflow-y-auto space-y-5 text-xs font-mono" style={{ overscrollBehavior: "contain" }}>
+            <div className="p-6 overflow-y-auto space-y-4 text-xs font-mono" style={{ overscrollBehavior: "contain" }}>
+              {/* Timestamp Ribbon */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-100 border border-black/[0.04]">
+                <span className="text-[9.5px] uppercase tracking-wider text-[#8E92A2] flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> Logged Date
+                </span>
+                <span className="font-bold text-[#0C0D11]">
+                  {formatDateTime(selectedOrder.createdAt).date} • {formatDateTime(selectedOrder.createdAt).time}
+                </span>
+              </div>
+
               {/* Origin Badge */}
               {selectedOrder.isManualEntry ||
               selectedOrder.orderNumber?.startsWith("ROC-POS") ||
@@ -593,7 +734,7 @@ export default function AdminOrdersPage() {
                     <span>Direct Boutique / Counter Sale</span>
                   </div>
                   <p className="text-[10px] text-emerald-700 font-sans">
-                    Hand-entered at the boutique POS desk. Fulfilled immediately on premises.
+                    Hand-entered at the boutique POS desk. Handed over directly on premises.
                   </p>
                 </div>
               ) : (
@@ -608,7 +749,7 @@ export default function AdminOrdersPage() {
                 </div>
               )}
 
-              {/* Garment Piece Breakdown */}
+              {/* Garment Breakdown */}
               <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] space-y-3">
                 <span className="text-[9px] uppercase tracking-wider text-[#8E92A2] block font-bold">
                   Ordered Silhouettes
@@ -640,7 +781,7 @@ export default function AdminOrdersPage() {
                 ))}
               </div>
 
-              {/* Patron Profile & Payment */}
+              {/* Patron & Destination */}
               <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] space-y-2.5">
                 <span className="text-[9px] uppercase tracking-wider text-[#8E92A2] block font-bold">
                   Client & Settlement Profile
@@ -686,7 +827,7 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* Total Payable Block */}
+              {/* Total Settlement Banner */}
               <div className="flex items-center justify-between p-4 rounded-2xl bg-[#0C0D11] text-white">
                 <span className="font-serif font-black uppercase text-xs">Total Settlement</span>
                 <span className="font-mono font-black text-lg text-emerald-400">
@@ -720,11 +861,5 @@ export default function AdminOrdersPage() {
         </div>
       )}
     </div>
-
-
-
-
-
-
   );
 }
